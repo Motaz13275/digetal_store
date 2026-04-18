@@ -1,0 +1,3386 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Digital Store | متجر الاشتراكات الرقمية</title>
+    <meta
+      name="description"
+      content="متجر DS للاشتراكات الرقمية: نتفليكس، شاهد، ChatGPT Plus، Snapchat+ بخدمة سريعة ودعم مباشر."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Tajawal:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome للأيقونات -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <style>
+      :root {
+        --bg-1: #041432;
+        --bg-2: #06235b;
+        --bg-3: #0e4ed2;
+        --card: rgba(7, 26, 68, 0.7);
+        --line: rgba(137, 201, 255, 0.25);
+        --text-main: #ecf6ff;
+        --text-soft: #b9d8ff;
+        --brand: #43bbff;
+        --brand-2: #5de2ff;
+        --ok: #5df2c4;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        font-family: "Tajawal", sans-serif;
+        color: var(--text-main);
+        background: linear-gradient(135deg, #020c26 0%, #061a40 50%, #020c26 100%);
+        background-attachment: fixed;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body.modal-open {
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: 
+          radial-gradient(circle at 15% 50%, rgba(30, 80, 140, 0.25), transparent 30%),
+          radial-gradient(circle at 85% 30%, rgba(40, 40, 130, 0.2), transparent 30%);
+        z-index: -2;
+      }
+
+      /* Global Neon Lines Background */
+      .global-lines {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: -1;
+        overflow: hidden;
+      }
+      .g-line {
+        position: absolute;
+        opacity: 0.85;
+      }
+      .g-line::after {
+        content: "";
+        position: absolute;
+        background: #fff;
+        border-radius: 50%;
+      }
+
+      /* Vertical Lines */
+      .g-line.v-1, .g-line.v-2, .g-line.v-3, .g-line.v-4 {
+        width: 3px;
+        height: 100%;
+      }
+      .g-line.v-1 { left: 10%; animation: g-scan-v 3s linear infinite; background: linear-gradient(to bottom, transparent, rgba(93, 226, 255, 0.9), transparent); }
+      .g-line.v-2 { left: 35%; animation: g-scan-v-rev 4.5s linear infinite; background: linear-gradient(to bottom, transparent, rgba(41, 224, 193, 0.9), transparent); }
+      .g-line.v-3 { right: 20%; animation: g-scan-v 2.5s linear infinite 1s; background: linear-gradient(to bottom, transparent, rgba(93, 226, 255, 0.9), transparent); }
+      .g-line.v-4 { right: 5%; animation: g-scan-v-rev 3.5s linear infinite 0.5s; background: linear-gradient(to bottom, transparent, rgba(41, 224, 193, 0.9), transparent); }
+
+      /* Vertical Heads */
+      .g-line.v-1::after, .g-line.v-3::after {
+        bottom: 0; left: 50%; transform: translateX(-50%);
+        width: 10px; height: 10px;
+        box-shadow: 0 0 20px 6px rgba(93, 226, 255, 0.9);
+      }
+      .g-line.v-2::after, .g-line.v-4::after {
+        top: 0; left: 50%; transform: translateX(-50%);
+        width: 10px; height: 10px;
+        box-shadow: 0 0 20px 6px rgba(41, 224, 193, 0.9);
+      }
+
+      /* Horizontal Lines */
+      .g-line.h-1, .g-line.h-2, .g-line.h-3, .g-line.h-4 {
+        width: 100%;
+        height: 3px;
+      }
+      .g-line.h-1 { top: 15%; animation: g-scan-h 4s linear infinite; background: linear-gradient(to right, transparent, rgba(93, 226, 255, 0.9), transparent); }
+      .g-line.h-2 { top: 55%; animation: g-scan-h-rev 3.5s linear infinite; background: linear-gradient(to right, transparent, rgba(41, 224, 193, 0.9), transparent); }
+      .g-line.h-3 { bottom: 25%; animation: g-scan-h 5s linear infinite 1s; background: linear-gradient(to right, transparent, rgba(93, 226, 255, 0.9), transparent); }
+      .g-line.h-4 { bottom: 5%; animation: g-scan-h-rev 3s linear infinite 0.5s; background: linear-gradient(to right, transparent, rgba(41, 224, 193, 0.9), transparent); }
+
+      /* Horizontal Heads */
+      .g-line.h-1::after, .g-line.h-3::after {
+        right: 0; top: 50%; transform: translateY(-50%);
+        width: 10px; height: 10px;
+        box-shadow: 0 0 20px 6px rgba(93, 226, 255, 0.9);
+      }
+      .g-line.h-2::after, .g-line.h-4::after {
+        left: 0; top: 50%; transform: translateY(-50%);
+        width: 10px; height: 10px;
+        box-shadow: 0 0 20px 6px rgba(41, 224, 193, 0.9);
+      }
+
+      @keyframes g-scan-v { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+      @keyframes g-scan-v-rev { 0% { transform: translateY(100%); } 100% { transform: translateY(-100%); } }
+      @keyframes g-scan-h { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+      @keyframes g-scan-h-rev { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+      /* Services Slider */
+      .marquee-container {
+        margin-bottom: 50px;
+        position: relative;
+        border-radius: 20px;
+        background: linear-gradient(160deg, rgba(11, 46, 111, 0.4), rgba(5, 20, 54, 0.4));
+        border: 1px solid rgba(153, 225, 255, 0.15);
+        padding: 25px 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transition: box-shadow 0.3s ease;
+      }
+      .marquee-container:hover {
+        box-shadow: 0 10px 30px rgba(91, 205, 255, 0.15);
+      }
+      .marquee-scroll-area {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        direction: ltr; /* Force LTR for easy JS scroll math */
+      }
+      .marquee-scroll-area::-webkit-scrollbar {
+        display: none;
+      }
+      .marquee-track {
+        display: flex;
+        direction: ltr;
+        gap: 30px;
+        width: max-content;
+        padding-right: 30px;
+      }
+      .marquee-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: transform 0.3s, opacity 0.3s;
+        min-width: 120px;
+        padding: 5px;
+        user-select: none;
+      }
+      .marquee-item:hover {
+        transform: scale(1.08);
+      }
+      .marquee-item img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid rgba(164, 227, 255, 0.5);
+        box-shadow: 0 6px 15px rgba(91, 205, 255, 0.2);
+        transition: box-shadow 0.3s, border-color 0.3s;
+        pointer-events: none;
+      }
+      .marquee-item span {
+        font-size: 1.1rem;
+        color: #ecf6ff;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      /* End Services Slider */
+
+      .container {
+        width: min(1120px, 92vw);
+        margin-inline: auto;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: blur(10px);
+        background: rgba(3, 14, 38, 0.65);
+        border-bottom: 1px solid rgba(142, 197, 255, 0.18);
+      }
+
+      .topbar-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 0;
+        gap: 16px;
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 2px solid rgba(164, 227, 255, 0.65);
+        object-fit: cover;
+        box-shadow: 0 0 24px rgba(91, 205, 255, 0.45);
+      }
+
+      .brand h1 {
+        font-size: clamp(1rem, 2.2vw, 1.2rem);
+        font-weight: 700;
+      }
+
+      .brand p {
+        color: var(--text-soft);
+        font-size: 0.82rem;
+      }
+
+      .topbar nav {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .topbar nav a {
+        color: var(--text-main);
+        text-decoration: none;
+        font-size: 0.95rem;
+        transition: color 0.2s ease;
+      }
+
+      .topbar nav a:hover {
+        color: var(--brand-2);
+      }
+
+      .auth-widget {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .admin-top-btn {
+        padding: 7px 14px;
+        white-space: nowrap;
+      }
+
+      .admin-top-btn[hidden] {
+        display: none;
+      }
+
+      .cart-trigger {
+        border: 1px solid rgba(160, 226, 255, 0.36);
+        border-radius: 999px;
+        padding: 7px 12px;
+        background: rgba(82, 168, 255, 0.14);
+        color: var(--text-main);
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .cart-trigger:hover {
+        transform: translateY(-1px);
+        background: rgba(102, 190, 255, 0.24);
+      }
+
+      .cart-trigger:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 200, 255, 0.22);
+      }
+
+      .cart-count {
+        min-width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        padding: 0 6px;
+        display: inline-grid;
+        place-items: center;
+        font-size: 0.72rem;
+        background: linear-gradient(135deg, #73d3ff, #4ff3db);
+        color: #00224e;
+      }
+
+      .cart-count[hidden] {
+        display: none;
+      }
+
+      .google-signin {
+        min-width: 200px;
+      }
+
+      .user-chip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(152, 220, 255, 0.35);
+        border-radius: 999px;
+        padding: 4px;
+        background: rgba(70, 159, 255, 0.14);
+      }
+
+      .user-avatar-btn {
+        display: grid;
+        place-items: center;
+        border: none;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
+        border-radius: 999px;
+      }
+
+      .user-avatar-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 200, 255, 0.22);
+      }
+
+      .user-chip img {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(152, 220, 255, 0.45);
+      }
+
+      .user-dropdown {
+        position: absolute;
+        top: calc(100% + 10px);
+        inset-inline-end: 0;
+        min-width: 160px;
+        border-radius: 14px;
+        border: 1px solid rgba(152, 220, 255, 0.32);
+        background: linear-gradient(160deg, rgba(7, 33, 84, 0.95), rgba(5, 22, 58, 0.95));
+        padding: 10px;
+        box-shadow: 0 18px 28px rgba(2, 10, 26, 0.48);
+        z-index: 30;
+      }
+
+      .user-dropdown[hidden] {
+        display: none;
+      }
+
+      .user-logout {
+        border: 1px solid rgba(168, 228, 255, 0.4);
+        border-radius: 999px;
+        padding: 7px 11px;
+        background: rgba(107, 185, 255, 0.18);
+        color: var(--text-main);
+        font: inherit;
+        font-size: 0.82rem;
+        cursor: pointer;
+      }
+
+      .user-logout:hover {
+        background: rgba(115, 201, 255, 0.28);
+      }
+
+      .welcome-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at 75% 20%, rgba(102, 210, 255, 0.34), transparent 30%),
+          linear-gradient(145deg, rgba(2, 16, 46, 0.95), rgba(4, 31, 83, 0.98));
+        transition: opacity 0.45s ease, visibility 0.45s ease;
+      }
+
+      .welcome-splash.hide {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .splash-panel {
+        width: min(680px, 94vw);
+        border-radius: 24px;
+        padding: clamp(24px, 4vw, 38px);
+        border: 1px solid rgba(155, 222, 255, 0.35);
+        background: linear-gradient(160deg, rgba(10, 42, 102, 0.78), rgba(5, 20, 53, 0.86));
+        text-align: center;
+        box-shadow:
+          0 24px 40px rgba(2, 10, 26, 0.55),
+          inset 0 1px 0 rgba(188, 234, 255, 0.2);
+      }
+
+      .splash-logo {
+        width: 74px;
+        height: 74px;
+        margin-inline: auto;
+        margin-bottom: 16px;
+        border-radius: 50%;
+        border: 2px solid rgba(169, 230, 255, 0.7);
+        object-fit: cover;
+        box-shadow: 0 0 28px rgba(91, 205, 255, 0.5);
+      }
+
+      .splash-panel h2 {
+        font-size: clamp(1.4rem, 4vw, 2.35rem);
+        margin-bottom: 8px;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(100, 200, 255, 0.4);
+      }
+
+      .splash-panel p {
+        color: var(--text-soft);
+        font-size: 1.03rem;
+      }
+
+      .auth-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: grid;
+        place-items: center;
+        padding: 22px;
+        background: rgba(2, 12, 35, 0.74);
+        backdrop-filter: blur(9px);
+      }
+
+      .auth-gate[hidden] {
+        display: none;
+      }
+
+      .auth-card {
+        width: min(460px, 94vw);
+        border-radius: 22px;
+        border: 1px solid rgba(154, 220, 255, 0.32);
+        background: linear-gradient(160deg, rgba(7, 33, 84, 0.95), rgba(5, 22, 58, 0.95));
+        padding: clamp(18px, 4vw, 28px);
+        box-shadow:
+          0 22px 34px rgba(3, 9, 24, 0.48),
+          inset 0 1px 0 rgba(185, 229, 255, 0.2);
+      }
+
+      .auth-card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      .auth-card p {
+        color: var(--text-soft);
+        text-align: center;
+        line-height: 1.7;
+      }
+
+      .gate-google {
+        display: flex;
+        justify-content: center;
+        margin: 12px 0;
+      }
+
+      .auth-note {
+        margin-top: 6px;
+        font-size: 0.92rem;
+      }
+
+      .auth-warning {
+        margin-top: 10px;
+        color: #ffd29e;
+        font-size: 0.86rem;
+        text-align: center;
+      }
+
+      .admin-entry {
+        display: none !important;
+      }
+
+      .admin-entry:hover,
+      .admin-entry:focus-visible {
+        opacity: 0.62;
+        transform: scale(1.08);
+        box-shadow: 0 0 0 4px rgba(122, 205, 255, 0.14);
+      }
+
+      .admin-entry:focus-visible {
+        outline: none;
+      }
+
+      .admin-password-modal,
+      .admin-panel-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 96;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(2, 12, 35, 0.82);
+        backdrop-filter: blur(9px);
+      }
+
+      .admin-password-modal[hidden],
+      .admin-panel-overlay[hidden] {
+        display: none;
+      }
+
+      .admin-password-card {
+        width: min(420px, 94vw);
+        border-radius: 18px;
+        border: 1px solid rgba(154, 220, 255, 0.3);
+        background: linear-gradient(160deg, rgba(7, 33, 84, 0.95), rgba(5, 22, 58, 0.95));
+        padding: clamp(18px, 3.5vw, 24px);
+        box-shadow:
+          0 22px 34px rgba(3, 9, 24, 0.48),
+          inset 0 1px 0 rgba(185, 229, 255, 0.2);
+      }
+
+      .admin-password-card h4 {
+        font-size: 1.28rem;
+        margin-bottom: 6px;
+      }
+
+      .admin-password-card p {
+        color: var(--text-soft);
+        line-height: 1.6;
+      }
+
+      .admin-password-form {
+        margin-top: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .admin-password-form input {
+        border: 1px solid rgba(155, 218, 255, 0.35);
+        border-radius: 10px;
+        background: rgba(72, 157, 255, 0.12);
+        color: var(--text-main);
+        font: inherit;
+        padding: 10px 12px;
+      }
+
+      .admin-password-form input:focus {
+        outline: none;
+        border-color: rgba(130, 221, 255, 0.76);
+        box-shadow: 0 0 0 3px rgba(102, 200, 255, 0.18);
+      }
+
+      .admin-password-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .admin-warning {
+        color: #ffd29e;
+        font-size: 0.86rem;
+      }
+
+      .admin-warning[hidden] {
+        display: none;
+      }
+
+      .admin-confirm-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(2, 12, 35, 0.84);
+        backdrop-filter: blur(9px);
+      }
+
+      .admin-confirm-modal[hidden] {
+        display: none;
+      }
+
+      .cart-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 97;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(2, 12, 35, 0.84);
+        backdrop-filter: blur(9px);
+      }
+
+      .cart-modal[hidden] {
+        display: none;
+      }
+
+      .cart-panel {
+        width: min(620px, 96vw);
+        max-height: 92vh;
+        overflow: auto;
+        border-radius: 18px;
+        border: 1px solid rgba(154, 220, 255, 0.3);
+        background: linear-gradient(160deg, rgba(7, 33, 84, 0.95), rgba(5, 22, 58, 0.95));
+        padding: clamp(16px, 3vw, 22px);
+        box-shadow:
+          0 22px 34px rgba(3, 9, 24, 0.6),
+          inset 0 1px 0 rgba(185, 229, 255, 0.2);
+        backdrop-filter: blur(10px);
+      }
+
+      .cart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .cart-header h4 {
+        font-size: 1.2rem;
+      }
+
+      .cart-close-btn {
+        padding: 8px 12px;
+        font-size: 0.84rem;
+      }
+
+      .cart-items {
+        margin-top: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .cart-empty {
+        border-radius: 12px;
+        border: 1px dashed rgba(156, 223, 255, 0.34);
+        background: rgba(84, 169, 255, 0.1);
+        color: var(--text-soft);
+        text-align: center;
+        padding: 18px 12px;
+      }
+
+      .cart-item {
+        border: 1px solid rgba(153, 225, 255, 0.24);
+        border-radius: 14px;
+        background: rgba(8, 29, 73, 0.7);
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .cart-item-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .cart-item-head strong {
+        font-size: 0.95rem;
+      }
+
+      .cart-remove-btn {
+        border: 1px solid rgba(255, 177, 139, 0.42);
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: rgba(255, 121, 102, 0.14);
+        color: #ffe5d9;
+        font: inherit;
+        font-size: 0.76rem;
+        cursor: pointer;
+      }
+
+      .cart-item-meta {
+        color: var(--text-soft);
+        font-size: 0.84rem;
+      }
+
+      .cart-item-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .cart-item-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(153, 225, 255, 0.26);
+        border-radius: 999px;
+        background: rgba(90, 177, 255, 0.1);
+        padding: 4px;
+      }
+
+      .cart-qty-btn {
+        border: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: rgba(109, 197, 255, 0.24);
+        color: var(--text-main);
+        font: inherit;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .cart-qty-value {
+        min-width: 24px;
+        text-align: center;
+        font-weight: 700;
+      }
+
+      .cart-line-total {
+        font-size: 0.9rem;
+      }
+
+      .cart-summary {
+        margin-top: 14px;
+        border: 1px solid rgba(153, 225, 255, 0.24);
+        border-radius: 14px;
+        background: rgba(88, 171, 255, 0.12);
+        padding: 10px 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .cart-summary-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .cart-summary-row span {
+        color: var(--text-soft);
+      }
+
+      .cart-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .cart-actions .btn {
+        flex: 1;
+      }
+
+      .admin-confirm-card {
+        width: min(430px, 94vw);
+        border-radius: 18px;
+        border: 1px solid rgba(154, 220, 255, 0.3);
+        background: linear-gradient(160deg, rgba(7, 33, 84, 0.95), rgba(5, 22, 58, 0.95));
+        padding: clamp(18px, 3.5vw, 24px);
+        box-shadow:
+          0 22px 34px rgba(3, 9, 24, 0.48),
+          inset 0 1px 0 rgba(185, 229, 255, 0.2);
+      }
+
+      .admin-confirm-card h4 {
+        font-size: 1.18rem;
+        margin-bottom: 6px;
+      }
+
+      .admin-confirm-card p {
+        color: var(--text-soft);
+        line-height: 1.65;
+      }
+
+      .admin-confirm-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .admin-panel {
+        width: min(1220px, 96vw);
+        max-height: 92vh;
+        overflow: auto;
+        border-radius: 20px;
+        border: 1px solid rgba(152, 220, 255, 0.3);
+        background: linear-gradient(160deg, rgba(5, 24, 64, 0.94), rgba(7, 31, 77, 0.95));
+        padding: clamp(16px, 3vw, 24px);
+        box-shadow:
+          0 24px 44px rgba(2, 10, 28, 0.56),
+          inset 0 1px 0 rgba(185, 229, 255, 0.2);
+      }
+
+      .admin-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .admin-panel-title h4 {
+        font-size: 1.4rem;
+      }
+
+      .admin-panel-title p {
+        margin-top: 6px;
+        color: var(--text-soft);
+        line-height: 1.65;
+      }
+
+      .admin-tools {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.3fr) minmax(170px, 0.9fr) auto auto auto;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .admin-tools input,
+      .admin-tools select {
+        border: 1px solid rgba(153, 225, 255, 0.3);
+        border-radius: 10px;
+        background: rgba(88, 171, 255, 0.12);
+        color: var(--text-main);
+        font: inherit;
+        padding: 9px 10px;
+      }
+
+      .admin-tools input:focus,
+      .admin-tools select:focus {
+        outline: none;
+        border-color: rgba(130, 221, 255, 0.76);
+        box-shadow: 0 0 0 3px rgba(102, 200, 255, 0.16);
+      }
+
+      .admin-tools .btn {
+        white-space: nowrap;
+      }
+
+      .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .admin-stat {
+        border: 1px solid rgba(156, 223, 255, 0.24);
+        border-radius: 12px;
+        background: rgba(90, 177, 255, 0.1);
+        padding: 10px;
+      }
+
+      .admin-stat strong {
+        display: block;
+        font-size: 1.2rem;
+      }
+
+      .admin-stat span {
+        color: var(--text-soft);
+        font-size: 0.86rem;
+      }
+
+      .admin-section + .admin-section {
+        margin-top: 16px;
+      }
+
+      .admin-section h5 {
+        font-size: 1.02rem;
+        margin-bottom: 10px;
+      }
+
+      .admin-table-wrap {
+        border-radius: 14px;
+        border: 1px solid rgba(153, 225, 255, 0.24);
+        overflow-x: auto;
+        background: rgba(5, 25, 62, 0.55);
+      }
+
+      .admin-table {
+        width: 100%;
+        min-width: 1040px;
+        border-collapse: collapse;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        border-bottom: 1px solid rgba(153, 225, 255, 0.16);
+        padding: 10px;
+        text-align: right;
+        vertical-align: middle;
+        font-size: 0.87rem;
+      }
+
+      .admin-table thead th {
+        color: #e5f5ff;
+        font-weight: 700;
+        background: rgba(70, 173, 255, 0.16);
+        position: sticky;
+        top: 0;
+      }
+
+      .admin-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .admin-user-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 220px;
+      }
+
+      .admin-mini-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(152, 220, 255, 0.45);
+      }
+
+      .admin-user-text {
+        display: grid;
+        gap: 2px;
+      }
+
+      .admin-user-text small {
+        color: var(--text-soft);
+        direction: ltr;
+        font-size: 0.75rem;
+      }
+
+      .admin-status {
+        width: fit-content;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 0.72rem;
+      }
+
+      .admin-status-new {
+        border: 1px solid rgba(140, 198, 255, 0.38);
+        background: rgba(140, 198, 255, 0.12);
+        color: #d8ecff;
+      }
+
+      .admin-status-active {
+        border: 1px solid rgba(93, 242, 196, 0.38);
+        background: rgba(93, 242, 196, 0.12);
+        color: #bafee7;
+      }
+
+      .admin-status-expired {
+        border: 1px solid rgba(255, 177, 139, 0.38);
+        background: rgba(255, 177, 139, 0.12);
+        color: #ffe0d0;
+      }
+
+      .admin-status-warning {
+        border: 1px solid rgba(255, 213, 129, 0.42);
+        background: rgba(255, 213, 129, 0.16);
+        color: #ffeec8;
+      }
+
+      .admin-row-near-expiry td {
+        background: rgba(255, 213, 129, 0.07);
+      }
+
+      .admin-date {
+        direction: ltr;
+        white-space: nowrap;
+        display: inline-block;
+      }
+
+      .admin-customer-number {
+        direction: ltr;
+        white-space: nowrap;
+        display: inline-block;
+        font-weight: 700;
+        color: #d8f2ff;
+      }
+
+      .admin-input {
+        width: 100%;
+        min-width: 124px;
+        border: 1px solid rgba(153, 225, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(88, 171, 255, 0.12);
+        color: var(--text-main);
+        font: inherit;
+        font-size: 0.84rem;
+        padding: 7px 8px;
+      }
+
+      .admin-input:focus {
+        outline: none;
+        border-color: rgba(130, 221, 255, 0.76);
+        box-shadow: 0 0 0 3px rgba(102, 200, 255, 0.16);
+      }
+
+      .admin-save {
+        padding: 7px 12px;
+        font-size: 0.82rem;
+        white-space: nowrap;
+      }
+
+      .admin-row-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .admin-delete {
+        border: 1px solid rgba(255, 177, 139, 0.42);
+        background: rgba(255, 121, 102, 0.14);
+        color: #ffe5d9;
+      }
+
+      .admin-delete:hover {
+        background: rgba(255, 121, 102, 0.26);
+      }
+
+      .admin-extend {
+        border: 1px solid rgba(168, 228, 255, 0.36);
+        background: rgba(107, 185, 255, 0.16);
+      }
+
+      .admin-extend:hover {
+        background: rgba(115, 201, 255, 0.28);
+      }
+
+      .admin-empty {
+        text-align: center;
+        color: var(--text-soft);
+      }
+
+      .hero-section {
+        padding: clamp(40px, 6vh, 80px) 0 30px;
+      }
+      .hero-container {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border-radius: 24px;
+        overflow: hidden;
+        padding: clamp(40px, 8vw, 80px) 20px;
+        background: linear-gradient(135deg, rgba(3, 15, 42, 0.8), rgba(8, 34, 83, 0.8));
+        border: 1px solid rgba(93, 226, 255, 0.2);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(93, 226, 255, 0.05);
+        backdrop-filter: blur(10px);
+      }
+
+      /* Animated Neon Lines Background */
+      .hero-lines {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+      }
+      .line {
+        position: absolute;
+        background: linear-gradient(to bottom, transparent, rgba(93, 226, 255, 0.6), transparent);
+        opacity: 0.6;
+      }
+      .line.v-1 { width: 1px; height: 100%; left: 15%; animation: scan-v 6s linear infinite; }
+      .line.v-2 { width: 2px; height: 100%; left: 45%; animation: scan-v 8s linear infinite reverse; background: linear-gradient(to bottom, transparent, rgba(41, 224, 193, 0.5), transparent); }
+      .line.v-3 { width: 1px; height: 100%; right: 25%; animation: scan-v 5s linear infinite 2s; }
+      .line.h-1 { width: 100%; height: 1px; top: 30%; background: linear-gradient(to right, transparent, rgba(93, 226, 255, 0.6), transparent); animation: scan-h 7s linear infinite; }
+      .line.h-2 { width: 100%; height: 2px; bottom: 20%; background: linear-gradient(to right, transparent, rgba(41, 224, 193, 0.5), transparent); animation: scan-h 9s linear infinite reverse; }
+
+      @keyframes scan-v {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+      }
+      @keyframes scan-h {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .hero-logo-img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid rgba(93, 226, 255, 0.7);
+        box-shadow: 0 0 30px rgba(93, 226, 255, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.5);
+        margin-bottom: 10px;
+        animation: float-logo 4s ease-in-out infinite;
+      }
+
+      @keyframes float-logo {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); box-shadow: 0 10px 40px rgba(93, 226, 255, 0.6), inset 0 0 20px rgba(0, 0, 0, 0.5); }
+      }
+
+      .hero-title {
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        line-height: 1.3;
+        font-weight: 800;
+        color: #fff;
+        text-shadow: 0 0 15px rgba(93, 226, 255, 0.3);
+      }
+      .hero-title span {
+        background: linear-gradient(135deg, #5de2ff, #29e0c1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: none;
+      }
+
+      .hero-desc-rotator {
+        position: relative;
+        height: 80px;
+        width: 100%;
+        max-width: 650px;
+        margin: 0 auto;
+        overflow: visible;
+      }
+      .hero-desc-rotator p {
+        position: absolute;
+        inset: 0;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        opacity: 0;
+        animation: rotate-text 12s infinite;
+        color: var(--text-soft);
+        font-size: clamp(1rem, 2vw, 1.2rem);
+        line-height: 1.6;
+      }
+      .hero-desc-rotator p:nth-child(1) { animation-delay: 0s; }
+      .hero-desc-rotator p:nth-child(2) { animation-delay: 4s; }
+      .hero-desc-rotator p:nth-child(3) { animation-delay: 8s; }
+
+      @keyframes rotate-text {
+        0% { opacity: 0; transform: translateY(15px) scale(0.95); filter: blur(8px); }
+        10% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        25% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        35% { opacity: 0; transform: translateY(-15px) scale(1.05); filter: blur(8px); }
+        100% { opacity: 0; }
+      }
+
+      /* Promo Modal */
+      .promo-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10000; /* above everything */
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: rgba(2, 12, 35, 0.75);
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
+      }
+      .promo-modal[hidden] {
+        display: none !important;
+      }
+      .promo-modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+      .promo-card {
+        position: relative;
+        width: min(400px, 90vw);
+        background: linear-gradient(160deg, rgba(8, 34, 83, 0.95), rgba(5, 23, 58, 0.95));
+        border: 1px solid rgba(144, 212, 255, 0.4);
+        border-radius: 24px;
+        padding: 40px 20px 25px;
+        text-align: center;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(93, 226, 255, 0.15);
+        transform: scale(0.8) translateY(30px);
+        transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .promo-modal.show .promo-card {
+        transform: scale(1) translateY(0);
+      }
+      .promo-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        font-size: 1.4rem;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        transition: 0.3s;
+      }
+      .promo-close:hover {
+        background: rgba(255, 71, 87, 0.8);
+        transform: rotate(90deg);
+      }
+      .promo-badge {
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff4757, #ff6b81);
+        color: white;
+        padding: 6px 20px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+        white-space: nowrap;
+        animation: pulse-badge 2s infinite;
+      }
+      @keyframes pulse-badge {
+        0%, 100% { transform: translateX(-50%) scale(1); }
+        50% { transform: translateX(-50%) scale(1.05); }
+      }
+      .promo-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid rgba(93, 226, 255, 0.6);
+        margin-bottom: 15px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+      }
+      .promo-card h3 {
+        font-size: 1.4rem;
+        margin-bottom: 8px;
+        color: #ecf6ff;
+      }
+      .promo-card p {
+        font-size: 0.95rem;
+        color: var(--text-soft);
+        margin-bottom: 15px;
+        line-height: 1.6;
+      }
+      .promo-price {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--brand-2);
+        margin-bottom: 20px;
+        text-shadow: 0 0 10px rgba(93, 226, 255, 0.3);
+      }
+      .promo-card .btn {
+        width: 100%;
+        font-size: 1.1rem;
+        padding: 12px;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 10px;
+      }
+      .hero-actions .btn {
+        padding: 12px 24px;
+        font-size: 1.05rem;
+      }
+
+      .hero-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+        margin-top: 30px;
+        width: 100%;
+        border-top: 1px solid rgba(144, 212, 255, 0.15);
+        padding-top: 25px;
+      }
+      .hero-stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(144, 212, 255, 0.1);
+      }
+      .hero-stat-item strong {
+        font-size: 1.4rem;
+        color: #ecf6ff;
+        font-weight: 800;
+      }
+      .hero-stat-item span {
+        font-size: 0.85rem;
+        color: var(--text-soft);
+      }
+
+      .feature-card,
+      .review-card {
+        background: linear-gradient(160deg, rgba(8, 34, 83, 0.4), rgba(5, 23, 58, 0.5));
+        border: 1px solid rgba(144, 212, 255, 0.3);
+        border-radius: 16px;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        text-align: center;
+        place-items: center;
+        backdrop-filter: blur(5px);
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+      .feature-card:hover,
+      .review-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(91, 205, 255, 0.15);
+      }
+
+      .btn {
+        border: none;
+        border-radius: 12px;
+        padding: 11px 18px;
+        font: inherit;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .btn-primary {
+        color: #020c26;
+        background: linear-gradient(135deg, #5de2ff, #29e0c1);
+        box-shadow: 0 8px 20px rgba(93, 226, 255, 0.4);
+      }
+
+      .btn-ghost {
+        color: var(--text-main);
+        border: 1px solid rgba(164, 226, 255, 0.45);
+        background: rgba(120, 196, 255, 0.1);
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+      .btn-primary:hover {
+        box-shadow: 0 12px 25px rgba(93, 226, 255, 0.6);
+      }
+
+      .pulse-card {
+        display: none;
+      }
+      .logo-preview {
+        display: none;
+      }
+
+      .logo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .logo-fallback {
+        display: grid;
+        place-items: center;
+        gap: 8px;
+        font-family: "Orbitron", sans-serif;
+      }
+
+      .logo-fallback strong {
+        font-size: clamp(2rem, 6vw, 3rem);
+        letter-spacing: 2px;
+      }
+
+      .logo-fallback span {
+        color: #c9eaff;
+        font-size: 0.9rem;
+      }
+
+      .stats {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .stat {
+        border: 1px solid rgba(162, 226, 255, 0.22);
+        border-radius: 14px;
+        background: rgba(89, 177, 255, 0.08);
+        text-align: center;
+        padding: 11px 6px;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 1.2rem;
+      }
+
+      .customer-alert {
+        padding-top: 10px;
+      }
+
+      .customer-alert[hidden] {
+        display: none;
+      }
+
+      .customer-alert-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 214, 138, 0.34);
+        background: linear-gradient(145deg, rgba(58, 91, 143, 0.48), rgba(116, 89, 20, 0.35));
+        padding: 10px 12px;
+      }
+
+      .customer-alert p {
+        color: #ffefcd;
+        margin: 0;
+        line-height: 1.6;
+      }
+
+      .top-picks-section {
+        padding-top: 4px;
+      }
+
+      .pick-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .pick-card {
+        border: 1px solid rgba(156, 223, 255, 0.3);
+        border-radius: 16px;
+        background: linear-gradient(160deg, rgba(8, 34, 83, 0.5), rgba(5, 23, 58, 0.6));
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+        backdrop-filter: blur(5px);
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+      .pick-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(91, 205, 255, 0.15);
+      }
+
+      .pick-rank {
+        width: fit-content;
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 0.78rem;
+        border: 1px solid rgba(157, 223, 255, 0.45);
+        background: rgba(101, 209, 255, 0.2);
+      }
+
+      .pick-card h4 {
+        font-size: 1.05rem;
+      }
+
+      .pick-card p {
+        color: var(--text-soft);
+        line-height: 1.65;
+        margin: 0;
+      }
+
+      .pick-meta {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .pick-meta strong {
+        font-size: 1.28rem;
+      }
+
+      .pick-meta span {
+        color: var(--text-soft);
+        font-size: 0.84rem;
+      }
+
+      .quick-pick-order {
+        text-align: center;
+      }
+
+      .section {
+        padding: 28px 0;
+      }
+
+      .section-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        gap: 12px;
+      }
+
+      .section-title h3 {
+        font-size: clamp(1.3rem, 3.5vw, 2rem);
+      }
+
+      .section-title p {
+        color: var(--text-soft);
+      }
+
+      .service-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .service-item {
+        background: linear-gradient(160deg, rgba(8, 34, 83, 0.4), rgba(5, 23, 58, 0.5));
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(149, 214, 255, 0.24);
+        border-radius: 18px;
+        overflow: hidden;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .service-item[open] {
+        border-color: rgba(156, 223, 255, 0.58);
+        box-shadow: 0 14px 24px rgba(2, 12, 30, 0.35);
+      }
+
+      .service-item summary {
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+      }
+
+      .service-item summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .service-name-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+
+      .service-name {
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        font-size: 0;
+        line-height: 0;
+        font-weight: 700;
+      }
+
+      .service-logo {
+        width: 54px;
+        height: 54px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid rgba(164, 226, 255, 0.35);
+        background: rgba(0, 0, 0, 0.14);
+        flex: 0 0 auto;
+      }
+
+      .pick-logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid rgba(164, 226, 255, 0.3);
+        background: rgba(0, 0, 0, 0.14);
+        vertical-align: middle;
+        margin-left: 10px;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .service-hint {
+        display: none;
+      }
+
+      .summary-arrow {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(153, 225, 255, 0.38);
+        background: rgba(90, 202, 255, 0.16);
+        transition: transform 0.2s ease;
+      }
+
+      .service-item[open] .summary-arrow {
+        transform: rotate(180deg);
+      }
+
+      .service-content {
+        display: block;
+        border-top: 1px solid rgba(149, 214, 255, 0.24);
+        padding: 0 18px;
+        max-height: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        overflow: hidden;
+        transform: translateY(-8px);
+        transition:
+          max-height 0.45s ease,
+          opacity 0.28s ease,
+          transform 0.28s ease,
+          padding 0.35s ease,
+          border-color 0.35s ease,
+          visibility 0s linear 0.45s;
+      }
+
+      .service-item[open] .service-content {
+        padding: 14px 18px 18px;
+        max-height: 1200px;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+
+      .plan-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .plan-card {
+        border: 1px solid rgba(153, 225, 255, 0.24);
+        border-radius: 14px;
+        padding: 12px;
+        background: linear-gradient(160deg, rgba(8, 34, 83, 0.4), rgba(5, 23, 58, 0.5));
+        backdrop-filter: blur(5px);
+        display: grid;
+        gap: 8px;
+        position: relative;
+        opacity: 0;
+        transform: translateY(12px);
+        transition: opacity 0.28s ease, transform 0.32s ease, box-shadow 0.3s;
+      }
+      .service-item[open] .plan-card {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .service-item[open] .plan-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(91, 205, 255, 0.15);
+      }
+
+      .service-item[open] .plan-card:nth-child(1) {
+        transition-delay: 0.05s;
+      }
+
+      .service-item[open] .plan-card:nth-child(2) {
+        transition-delay: 0.1s;
+      }
+
+      .service-item[open] .plan-card:nth-child(3) {
+        transition-delay: 0.15s;
+      }
+
+      .service-item[open] .plan-card:nth-child(4) {
+        transition-delay: 0.2s;
+      }
+
+      .plan-card h5 {
+        font-size: 1rem;
+      }
+
+      .plan-price {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+      }
+
+      .plan-price strong {
+        font-size: 1.4rem;
+        color: #ddf8ff;
+      }
+
+      .plan-price span {
+        color: var(--text-soft);
+        font-size: 0.85rem;
+      }
+
+      .plan-features {
+        list-style: none;
+        display: grid;
+        gap: 6px;
+        color: var(--text-soft);
+        font-size: 0.9rem;
+      }
+
+      .plan-features li::before {
+        content: "•";
+        margin-left: 8px;
+        color: var(--ok);
+        font-weight: 700;
+      }
+
+      .plan-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 0.72rem;
+        border: 1px solid rgba(95, 244, 201, 0.42);
+        background: rgba(95, 244, 201, 0.16);
+        color: #c9ffe9;
+      }
+
+      .plan-monthly {
+        color: #bfe5ff;
+        font-size: 0.82rem;
+      }
+
+      .quick-order-btn {
+        margin-top: 4px;
+        width: 100%;
+        text-align: center;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+      }
+
+      .add-cart-btn,
+      .quick-pick-add-cart {
+        margin-top: 6px;
+        width: 100%;
+        text-align: center;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+      }
+
+      .service-order {
+        display: inline-block;
+        margin-top: 12px;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.3s ease 0.2s, transform 0.3s ease 0.2s;
+      }
+
+      .service-item[open] .service-order {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .service-content,
+        .plan-card,
+        .service-order {
+          transition: none;
+          transform: none;
+        }
+      }
+
+      .why {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .why-item {
+        border: 1px solid rgba(154, 217, 255, 0.24);
+        border-radius: 16px;
+        background: rgba(88, 166, 255, 0.08);
+        padding: 16px;
+      }
+
+      .why-item h5 {
+        font-size: 1.03rem;
+        margin-bottom: 8px;
+      }
+
+      .why-item p {
+        color: var(--text-soft);
+        line-height: 1.65;
+      }
+
+      .review-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .review-card {
+        border: 1px solid rgba(154, 217, 255, 0.24);
+        border-radius: 16px;
+        background: rgba(88, 166, 255, 0.08);
+        padding: 16px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .review-stars {
+        color: #ffdf8d;
+        letter-spacing: 1px;
+        font-size: 0.92rem;
+      }
+
+      .review-card p {
+        color: var(--text-soft);
+        line-height: 1.7;
+      }
+
+      .review-card strong {
+        font-size: 0.93rem;
+      }
+
+      .faq-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .faq-item {
+        border: 1px solid rgba(149, 214, 255, 0.24);
+        border-radius: 14px;
+        background: rgba(7, 26, 68, 0.64);
+        overflow: hidden;
+      }
+
+      .faq-item summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+
+      .faq-item summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .faq-item p {
+        border-top: 1px solid rgba(149, 214, 255, 0.2);
+        color: var(--text-soft);
+        line-height: 1.7;
+        padding: 12px 16px 14px;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .step {
+        position: relative;
+        border-radius: 16px;
+        padding: 16px;
+        background: rgba(4, 22, 56, 0.75);
+        border: 1px solid rgba(144, 210, 255, 0.26);
+      }
+
+      .step strong {
+        display: inline-grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--brand);
+        color: #00224e;
+        margin-left: 10px;
+      }
+   /* --- Legendary Admin Panel Enhancements --- */
+      .admin-panel-overlay {
+        position: fixed; inset: 0; background: rgba(2, 10, 26, 0.85); backdrop-filter: blur(12px);
+        z-index: 9999; display: grid; place-items: center; padding: 20px;
+        opacity: 0; visibility: hidden; transition: 0.3s ease;
+      }
+      .admin-panel-overlay:not([hidden]) {
+        opacity: 1; visibility: visible;
+      }
+      .admin-panel {
+        width: 100%; max-width: 1500px; height: 92vh; 
+        background: linear-gradient(160deg, rgba(8, 29, 73, 0.95), rgba(4, 15, 38, 0.98));
+        border: 1px solid rgba(149, 214, 255, 0.2); border-radius: 24px;
+        display: flex; flex-direction: column; overflow: hidden; 
+        box-shadow: 0 30px 60px rgba(0,0,0,0.6), 0 0 20px rgba(90, 202, 255, 0.1);
+      }
+      .admin-panel-header {
+        padding: 20px 30px; border-bottom: 1px solid rgba(149, 214, 255, 0.15); 
+        display: flex; justify-content: space-between; align-items: center; 
+        background: rgba(0,0,0,0.25);
+      }
+      .admin-stats {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+        gap: 15px; padding: 20px 30px;
+      }
+      .admin-stat {
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); 
+        padding: 18px; border-radius: 16px; text-align: center; transition: 0.3s;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+      }
+      .admin-stat:hover { 
+        transform: translateY(-5px); border-color: var(--brand); 
+        background: rgba(90, 202, 255, 0.08); box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+      }
+      .admin-stat strong { font-size: 2.2rem; display: block; margin-bottom: 5px; text-shadow: 0 2px 10px rgba(255,255,255,0.2); }
+      .admin-stat span { color: var(--text-soft); font-size: 0.9rem; }
+      .admin-tools {
+        padding: 0 30px 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+      }
+      .admin-tools input, .admin-tools select {
+        padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(149, 214, 255, 0.2); 
+        background: rgba(0,0,0,0.3); color: white; flex: 1; min-width: 220px; font-family: inherit;
+        outline: none; transition: 0.2s;
+      }
+      .admin-tools input:focus, .admin-tools select:focus { border-color: var(--brand); background: rgba(0,0,0,0.5); }
+      .admin-tools select option { background: #041432; color: white; }
+      .admin-content {
+        flex: 1; overflow-y: auto; padding: 0 30px 30px;
+      }
+      .admin-table {
+        width: 100%; border-collapse: separate; border-spacing: 0 10px;
+      }
+      .admin-table th {
+        background: transparent; color: var(--brand); font-weight: 700; 
+        padding: 12px 15px; text-align: right; border-bottom: 2px solid rgba(149, 214, 255, 0.2);
+        position: sticky; top: 0; backdrop-filter: blur(10px); z-index: 10;
+      }
+      .admin-table td {
+        background: rgba(255,255,255,0.03); padding: 15px; 
+        border-top: 1px solid rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.03);
+        vertical-align: top;
+      }
+      .admin-table td:first-child { border-right: 1px solid rgba(255,255,255,0.03); border-radius: 0 14px 14px 0; }
+      .admin-table td:last-child { border-left: 1px solid rgba(255,255,255,0.03); border-radius: 14px 0 0 14px; }
+      .admin-table tr:hover td { background: rgba(255,255,255,0.06); }
+      .subs-list { display: flex; flex-direction: column; gap: 10px; }
+      .sub-row {
+        display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; 
+        background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; 
+        border-right: 4px solid #555; transition: 0.2s;
+      }
+      .sub-row:hover { background: rgba(0,0,0,0.5); }
+      .sub-row input { 
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
+        color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; width: 100%; outline: none;
+      }
+      .sub-row input:focus { border-color: var(--brand); }
+      .sub-row input[type="date"] { color-scheme: dark; }
+      .sub-row.status-active { border-right-color: #2ecc71; box-shadow: inset -20px 0 30px -20px rgba(46, 204, 113, 0.2); }
+      .sub-row.status-near { border-right-color: #f1c40f; box-shadow: inset -20px 0 30px -20px rgba(241, 196, 15, 0.2); }
+      .sub-row.status-expired { border-right-color: #e74c3c; box-shadow: inset -20px 0 30px -20px rgba(231, 76, 60, 0.2); }
+      .admin-input.notes { 
+        width: 100%; min-height: 80px; background: rgba(0,0,0,0.2); 
+        border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 10px; 
+        padding: 10px; resize: vertical; outline: none; font-family: inherit; line-height: 1.5;
+      }
+      .admin-input.notes:focus { border-color: var(--brand); }
+      .admin-row-actions { display: flex; flex-direction: column; gap: 8px; }
+      .admin-row-actions .btn { padding: 8px 12px; font-size: 0.85rem; width: 100%; justify-content: center; display: flex; align-items: center; gap: 8px; }
+      .copy-badge { 
+        cursor: pointer; background: rgba(255,255,255,0.08); padding: 4px 8px; 
+        border-radius: 6px; font-size: 0.75rem; margin-top: 5px; display: inline-flex; align-items: center; gap: 5px;
+        transition: 0.2s; border: 1px solid rgba(255,255,255,0.05); color: #d9f0ff;
+      }
+      .copy-badge:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.2); transform: scale(1.02); }
+      .btn-remove-sub { background: rgba(231, 76, 60, 0.1); color: #ff6b6b; border: 1px solid rgba(231, 76, 60, 0.2); border-radius: 6px; cursor: pointer; transition: 0.2s; display: grid; place-items: center; width: 30px; }
+      .btn-remove-sub:hover { background: #e74c3c; color: white; }
+      .admin-status { padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; margin-right: 5px; vertical-align: middle; }
+      .admin-status-new { background: rgba(52, 152, 219, 0.2); color: #3498db; border: 1px solid #3498db; }
+      .admin-status-active { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
+      .admin-status-expired { background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; }
+      
+      /* Scrollbar styling for admin content */
+      .admin-content::-webkit-scrollbar { width: 8px; }
+      .admin-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+      .admin-content::-webkit-scrollbar-thumb { background: rgba(149, 214, 255, 0.3); border-radius: 10px; }
+      .admin-content::-webkit-scrollbar-thumb:hover { background: rgba(149, 214, 255, 0.5); }
+      
+      .cta {
+        margin: 34px 0 18px;
+        border: 1px solid rgba(164, 226, 255, 0.26);
+        border-radius: 20px;
+        padding: clamp(20px, 4vw, 34px);
+        background:
+          linear-gradient(160deg, rgba(3, 23, 67, 0.88), rgba(11, 53, 124, 0.55)),
+          radial-gradient(circle at 80% 20%, rgba(114, 223, 255, 0.24), transparent 35%);
+        text-align: center;
+      }
+
+      .cta h3 {
+        font-size: clamp(1.45rem, 4vw, 2.2rem);
+        margin-bottom: 10px;
+      }
+
+      .cta p {
+        color: var(--text-soft);
+        margin-bottom: 14px;
+        line-height: 1.7;
+      }
+
+      .payment-actions {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .zaincash-number {
+        margin-top: 12px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(164, 226, 255, 0.32);
+        background: rgba(104, 189, 255, 0.12);
+        color: #d9f0ff;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .zaincash-number a {
+        color: #ffffff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .copy-number-btn {
+        padding: 10px 14px;
+      }
+
+      footer {
+        border-top: 1px solid rgba(166, 226, 255, 0.2);
+        margin-top: 22px;
+        padding: 16px 0 30px;
+        color: #c4e5ff;
+        text-align: center;
+        font-size: 0.9rem;
+      }
+
+      .fade-up {
+        animation: rise 0.7s ease both;
+      }
+
+      .whatsapp-float {
+  position: fixed;
+  bottom: 18px;
+  inset-inline-start: 18px; /* بدل end */
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  background: #5ef003;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.35);
+  z-index: 60;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: whatsapp-pulse 1.8s ease-in-out infinite;
+}
+
+      .whatsapp-float:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 30px rgba(0, 0, 0, 0.4);
+      }
+
+      .whatsapp-float svg {
+        width: 28px;
+        height: 28px;
+        fill: #ffffff;
+      }
+
+      @keyframes whatsapp-pulse {
+        0% {
+          box-shadow: 0 14px 24px rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(37, 211, 102, 0.35);
+        }
+        70% {
+          box-shadow: 0 14px 24px rgba(0, 0, 0, 0.35), 0 0 0 14px rgba(37, 211, 102, 0);
+        }
+        100% {
+          box-shadow: 0 14px 24px rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(37, 211, 102, 0);
+        }
+      }
+
+      .delay-1 {
+        animation-delay: 0.1s;
+      }
+
+      .delay-2 {
+        animation-delay: 0.2s;
+      }
+
+      .delay-3 {
+        animation-delay: 0.3s;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 980px) {
+        .banner-buttons {
+          bottom: 5%;
+          gap: 10px;
+        }
+        .banner-buttons .btn {
+          font-size: 0.85rem;
+          padding: 8px 12px;
+        }
+        .hero-grid,
+        .pick-grid,
+        .plan-grid,
+        .review-grid,
+        .why,
+        .steps {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .topbar-wrap {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          grid-template-areas:
+            "brand auth"
+            "nav nav";
+          align-items: center;
+        }
+
+        .brand {
+          grid-area: brand;
+        }
+
+        .topbar-actions {
+          display: contents;
+        }
+
+        .hero-grid,
+        .pick-grid,
+        .plan-grid,
+        .review-grid,
+        .why,
+        .steps,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .customer-alert-inner {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .topbar nav {
+          grid-area: nav;
+          width: 100%;
+          justify-content: space-between;
+          flex-wrap: wrap;
+        }
+
+        .auth-widget {
+          grid-area: auth;
+          width: auto;
+          justify-content: flex-end;
+        }
+
+        .cart-panel {
+          width: min(94vw, 94vw);
+          padding: 14px;
+        }
+
+        .cart-item-foot {
+          flex-wrap: wrap;
+        }
+
+        .cart-actions {
+          flex-direction: column;
+        }
+
+        .user-chip {
+          width: auto;
+          border-radius: 999px;
+          justify-content: center;
+        }
+
+        .splash-panel {
+          padding: 22px 16px;
+        }
+
+        .auth-card {
+          padding: 18px 14px;
+        }
+
+        .admin-entry {
+          width: 13px;
+          height: 13px;
+          left: 10px;
+          bottom: 10px;
+        }
+
+        .admin-password-actions {
+          flex-direction: column;
+        }
+
+        .admin-confirm-actions {
+          flex-direction: column;
+        }
+
+        .admin-password-actions .btn {
+          width: 100%;
+        }
+
+        .admin-confirm-actions .btn {
+          width: 100%;
+        }
+
+        .whatsapp-float {
+          width: 52px;
+          height: 52px;
+          bottom: 14px;
+          inset-inline-end: 14px;
+        }
+
+        .admin-panel {
+          border-radius: 14px;
+          padding: 14px;
+        }
+
+        .admin-panel-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .admin-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .admin-tools {
+          grid-template-columns: 1fr;
+        }
+
+        .admin-tools .btn {
+          width: 100%;
+        }
+
+        .admin-table {
+          min-width: 760px;
+        }
+
+        .hero p,
+        .section-title p {
+          font-size: 0.96rem;
+        }
+      }
+
+  footer {
+    background: #015281;
+    padding: 20px;
+    color: #fff;
+  }
+
+  footer .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  footer .footer-left p {
+    margin: 5px 0;
+  }
+
+  footer .owner {
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  footer .footer-right {
+    display: flex;
+    align-items: center;
+  }
+
+  footer .footer-right a {
+    margin: 0 10px;
+    font-size: 22px;
+    color: #00d5f6;
+    text-decoration: none;
+    transition: 0.3s;
+  }
+
+  footer .footer-right a:hover {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+
+  footer .phone {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+  }
+      
+    
+      .service-tab {
+        background: transparent;
+        color: var(--text-soft);
+        border: 1px solid transparent;
+      }
+      .service-tab.active {
+        background: rgba(90, 202, 255, 0.16);
+        color: #fff;
+        font-weight: bold;
+        border-color: rgba(153, 225, 255, 0.38);
+      }
+      .service-tab:hover:not(.active) {
+        background: rgba(255,255,255,0.05);
+      }
+</style>
+  </head>
+  <body>
+    <div class="global-lines">
+      <div class="g-line v-1"></div>
+      <div class="g-line v-2"></div>
+      <div class="g-line v-3"></div>
+      <div class="g-line v-4"></div>
+      <div class="g-line h-1"></div>
+      <div class="g-line h-2"></div>
+      <div class="g-line h-3"></div>
+      <div class="g-line h-4"></div>
+    </div>
+    <div class="welcome-splash" id="welcomeSplash">
+      <div class="splash-panel">
+        <img class="splash-logo" src="./logo.jpeg" alt="Digital Store Logo" />
+        <h2>أهلاً وسهلاً بك في متجر Digital Store</h2>
+        <p>اشتراكات رقمية موثوقة وسريعة - نتفليكس، شاهد، ChatGPT، سناب+</p>
+      </div>
+    </div>
+
+    <div class="auth-gate" id="authGate" hidden>
+      <div class="auth-card">
+        <h3>تسجيل الدخول</h3>
+        <div class="google-signin gate-google" id="gateGoogleSignIn"></div>
+        <p class="auth-warning" id="authWarning" hidden></p>
+      </div>
+    </div>
+
+    <button class="admin-entry" id="adminEntry" type="button" aria-label="فتح لوحة الأدمن" hidden></button>
+
+    <div class="admin-password-modal" id="adminPasswordModal" hidden>
+      <div class="admin-password-card">
+        <h4>لوحة الأدمن</h4>
+        <p>أدخل كلمة المرور لعرض المشتركين وإدارة الاشتراكات.</p>
+        <form class="admin-password-form" id="adminPasswordForm">
+          <input id="adminPasswordInput" type="password" placeholder="كلمة المرور" autocomplete="off" required />
+          <div class="admin-password-actions">
+            <button class="btn btn-primary" type="submit">فتح اللوحة</button>
+            <button class="btn btn-ghost" type="button" id="adminPasswordCancel">إلغاء</button>
+          </div>
+          <p class="admin-warning" id="adminPasswordWarning" hidden></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-panel-overlay" id="adminPanel" hidden>
+      <div class="admin-panel">
+        <div class="admin-panel-header">
+          <div>
+            <h4 style="font-size: 1.6rem; margin-bottom: 5px; color: #fff;"><i class="fa-solid fa-chart-line" style="color: var(--brand);"></i> لوحة تحكم الإدارة (Legendary Edition)</h4>
+            <p style="color: var(--text-soft); font-size: 0.95rem;">إدارة ذكية للمشتركين، الاشتراكات، والإحصائيات من مكان واحد.</p>
+          </div>
+          <button class="btn btn-ghost" type="button" id="adminCloseBtn" style="font-size: 1.2rem; padding: 10px 15px; border: 1px solid rgba(255,255,255,0.1);"><i class="fa-solid fa-times"></i> إغلاق اللوحة</button>
+        </div>
+
+        <div class="admin-stats">
+          <div class="admin-stat"><strong id="adminTotalCount" style="color: #fff;">0</strong><span><i class="fa-solid fa-users"></i> إجمالي المسجلين</span></div>
+          <div class="admin-stat"><strong id="adminNewCount" style="color: #3498db;">0</strong><span><i class="fa-solid fa-user-plus"></i> مستخدمين جدد</span></div>
+          <div class="admin-stat"><strong id="adminActiveCount" style="color: #2ecc71;">0</strong><span><i class="fa-solid fa-check-circle"></i> اشتراكات فعّالة</span></div>
+          <div class="admin-stat"><strong id="adminNearExpiryCount" style="color: #f1c40f;">0</strong><span><i class="fa-solid fa-clock"></i> قريب الانتهاء (3 أيام)</span></div>
+          <div class="admin-stat"><strong id="adminExpiredCount" style="color: #e74c3c;">0</strong><span><i class="fa-solid fa-times-circle"></i> اشتراكات منتهية</span></div>
+          <div class="admin-stat"><strong id="adminBlockedCount" style="color: #95a5a6;">0</strong><span><i class="fa-solid fa-ban"></i> حسابات محظورة</span></div>
+        </div>
+
+        <div class="admin-tools">
+          <input id="adminSearchInput" type="search" placeholder="&#xf002; بحث بالاسم، الإيميل، رقم العميل..." autocomplete="off" style="font-family: inherit, 'Font Awesome 6 Free';" />
+          <select id="adminStatusFilter">
+            <option value="all">التصنيف: كل الحالات</option>
+            <option value="new">🆕 مستخدمين جدد</option>
+            <option value="active">✅ اشتراكات فعّالة</option>
+            <option value="near_expiry">⚠️ قريب الانتهاء (3 أيام)</option>
+            <option value="expired">❌ اشتراكات منتهية</option>
+            <option value="blocked">🚫 محظورين</option>
+          </select>
+          <button class="btn btn-primary" type="button" id="adminBackupBtn"><i class="fa-solid fa-download"></i> تصدير البيانات (Backup)</button>
+          <button class="btn btn-ghost" type="button" id="adminRestoreBtn"><i class="fa-solid fa-upload"></i> استعادة البيانات</button>
+          <input id="adminRestoreInput" type="file" accept=".json,application/json" hidden />
+        </div>
+
+        <div class="admin-content">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%">بيانات المستخدم</th>
+                  <th style="width: 15%">النشاط والدخول</th>
+                  <th style="width: 35%">إدارة الاشتراكات</th>
+                  <th style="width: 15%">ملاحظات خاصة</th>
+                  <th style="width: 10%">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="adminMasterBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-confirm-modal" id="adminDeleteModal" hidden>
+      <div class="admin-confirm-card">
+        <h4>تحذير حذف المستخدم</h4>
+        <p>هل أنت متأكد أنك تريد حذف المستخدم؟ لا يمكن التراجع بعد التأكيد.</p>
+        <div class="admin-confirm-actions">
+          <button class="btn btn-primary" type="button" id="adminDeleteConfirmBtn">تأكيد</button>
+          <button class="btn btn-ghost" type="button" id="adminDeleteCancelBtn">رجوع</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cart-modal" id="cartModal" hidden>
+      <div class="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+        <div class="cart-header">
+          <h4 id="cartTitle">سلة المشتريات</h4>
+          <button class="btn btn-ghost cart-close-btn" type="button" id="cartCloseBtn">إغلاق</button>
+        </div>
+        <div class="cart-items" id="cartItemsBody"></div>
+        <div class="cart-summary">
+          <div class="cart-summary-row">
+            <span>عدد المنتجات</span>
+            <strong id="cartTotalCount">0</strong>
+          </div>
+          <div class="cart-summary-row">
+            <span>الإجمالي التقريبي</span>
+            <strong id="cartTotalPrice">0 دينار</strong>
+          </div>
+        </div>
+        <div class="cart-actions">
+          <button class="btn btn-ghost" type="button" id="cartClearBtn">تفريغ السلة</button>
+          <button class="btn btn-primary" type="button" id="cartCheckoutBtn">إرسال الطلب عبر واتساب</button>
+        </div>
+      </div>
+    </div>
+
+    <header class="topbar">
+      <div class="topbar-wrap">
+        <div class="brand">
+          <img class="logo" src="./logo.jpeg" alt="Digital Store Logo" />
+          <div>
+            <h1>Digital Store</h1>
+            <p>اشتراكاتك الرقمية بمكان واحد</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <nav>
+            <a href="#plans">الباقات</a>
+            <a href="#topPicks">الأكثر طلبًا</a>
+            <a href="#features">المميزات</a>
+            <a href="#reviews">آراء العملاء</a>
+            <a href="#faq">الأسئلة</a>
+            <a href="#steps">طريقة الطلب</a>
+            <a href="#contact">تواصل</a>
+          </nav>
+          <div class="auth-widget">
+            <button class="cart-trigger" id="cartOpenBtn" type="button" aria-controls="cartModal" aria-expanded="false">
+              <span>🛒 السلة</span>
+              <span class="cart-count" id="cartCount" hidden>0</span>
+            </button>
+            <button class="btn btn-ghost admin-top-btn" id="adminTopButton" type="button" hidden>صفحة الادارة</button>
+            <div class="user-chip" id="userChip" hidden>
+              <button
+                class="user-avatar-btn"
+                id="userMenuBtn"
+                type="button"
+                aria-label="حسابي"
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                <img id="userAvatar" alt="صورة المستخدم" />
+              </button>
+              <div class="user-dropdown" id="userDropdown" hidden>
+                <button class="user-logout" id="logoutBtn" type="button">تسجيل خروج</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="customer-alert" id="customerSubscriptionAlert" hidden>
+      <div class="container customer-alert-inner">
+        <p id="customerSubscriptionAlertText"></p>
+        <a class="btn btn-primary" href="#contact">جدد الآن</a>
+      </div>
+    </div>
+
+    <main>
+      <section class="hero-section">
+        <div class="container">
+          <div class="hero-container fade-up">
+            <div class="hero-lines">
+              <div class="line v-1"></div>
+              <div class="line v-2"></div>
+              <div class="line v-3"></div>
+              <div class="line h-1"></div>
+              <div class="line h-2"></div>
+            </div>
+            <div class="hero-content">
+              <img src="./logo.jpeg" alt="Digital Store Logo" class="hero-logo-img">
+              <h2 class="hero-title">اشتراكاتك المفضلة<br />في مكان واحد مع <span>DS</span></h2>
+              <div class="hero-desc-rotator">
+                <p>نوفر لك اشتراكات نتفليكس، شاهد، ChatGPT، وسناب بلس بأسعار منافسة وتسليم فوري بعد الدفع مباشرة.</p>
+                <p>تسليم آمن وفوري 100% مع ضمان استمرار الاشتراك، ودعم فني متواصل متواجد لخدمتك في أي وقت.</p>
+                <p>تمتع بأفضل تجربة ترفيهية بأسعار لا تقبل المنافسة، اختر باقتك الآن واستلمها خلال ثوانٍ.</p>
+              </div>
+              <div class="hero-actions">
+                <a class="btn btn-primary" href="#contact"><i class="fab fa-whatsapp"></i> اطلب الآن عبر واتساب</a>
+                <a class="btn btn-ghost" href="#plans">شوف الباقات</a>
+              </div>
+              <div class="hero-stats">
+                <div class="hero-stat-item">
+                  <strong>+1K</strong>
+                  <span>عميل</span>
+                </div>
+                <div class="hero-stat-item">
+                  <strong>5/5</strong>
+                  <span>تقييم الخدمة</span>
+                </div>
+                <div class="hero-stat-item">
+                  <strong>دعم</strong>
+                  <span>يومي مباشر</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section top-picks-section" id="topPicks">
+        <div class="container">
+          <div class="section-title fade-up delay-1">
+            <h3>الأكثر طلبًا</h3>
+            <p>أكثر 3 باقات يطلبها العملاء حاليًا</p>
+          </div>
+          <div class="pick-grid">
+            <article class="pick-card fade-up delay-1">
+              <span class="pick-rank">#1</span>
+              <h4>
+                <img class="pick-logo" src="./-_Shahid.jpg" alt="Shahid VIP" />
+                <span class="sr-only">شاهد مشترك</span>
+                شاهد مشترك - 12 شهر
+              </h4>
+              <p>الخيار الأكثر طلبًا للمشاهدة المستمرة مع توفير ممتاز.</p>
+              <div class="pick-meta">
+                <strong>15 دينار</strong>
+                <span>≈ 1.25 دينار / شهر</span>
+              </div>
+              <a
+                class="btn btn-primary quick-pick-order"
+                href="#"
+                data-service="شاهد مشترك"
+                data-duration="12 شهر"
+                data-price="15 دينار"
+              >
+                أضف للسلة
+              </a>
+            </article>
+
+            <article class="pick-card fade-up delay-2">
+              <span class="pick-rank">#2</span>
+              <h4>
+                <img class="pick-logo" src="./ChatGPT_Logo_-_Chat_gpt_Icon_on_White_Background.jpg" alt="ChatGPT Plus" />
+                <span class="sr-only">شات جي بي تي مشترك</span>
+                شات جي بي تي مشترك - سنة
+              </h4>
+              <p>باقة مطلوبة جدًا للطلاب وأصحاب الأعمال.</p>
+              <div class="pick-meta">
+                <strong>19 دينار</strong>
+                <span>≈ 1.58 دينار / شهر</span>
+              </div>
+              <a
+                class="btn btn-primary quick-pick-order"
+                href="#"
+                data-service="شات جي بي تي مشترك"
+                data-duration="سنة"
+                data-price="19 دينار"
+              >
+                أضف للسلة
+              </a>
+            </article>
+
+            <article class="pick-card fade-up delay-3">
+              <span class="pick-rank">#3</span>
+              <h4>
+                <img class="pick-logo" src="./-_Shahid.jpg" alt="Shahid Personal" />
+                <span class="sr-only">شاهد شخصي</span>
+                شاهد شخصي - سنة
+              </h4>
+              <p>حساب شخصي (5 بروفايلات) للمتابعة المستمرة.</p>
+              <div class="pick-meta">
+                <strong>19 دينار</strong>
+                <span>≈ 1.58 دينار / شهر</span>
+              </div>
+              <a
+                class="btn btn-primary quick-pick-order"
+                href="#"
+                data-service="شاهد شخصي"
+                data-duration="سنة"
+                data-price="19 دينار"
+              >
+                أضف للسلة
+              </a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-to-order" class="section">
+        <div class="container">
+          <div class="section-title fade-up delay-1">
+            <h3>طريقة الطلب</h3>
+            <p>3 خطوات سريعة وتوصلك الخدمة</p>
+          </div>
+          <div class="steps">
+            <article class="step fade-up delay-1">
+              <strong>1</strong>
+              <p>اختر الاشتراك المناسب من الباقات أو أرسل لنا طلبك مباشرة.</p>
+            </article>
+            <article class="step fade-up delay-2">
+              <strong>2</strong>
+              <p>تواصل عبر واتساب لتأكيد السعر وطريقة الدفع المناسبة لك.</p>
+            </article>
+            <article class="step fade-up delay-3">
+              <strong>3</strong>
+              <p>نقوم بالتفعيل فورًا ونرسل لك تفاصيل الاشتراك مع المتابعة.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="plans" class="section" style="padding-top: 20px;">
+        <div class="container">
+          <div class="marquee-container fade-up">
+            <h4 style="text-align: center; margin-bottom: 20px; font-size: 1.3rem; color: #ecf6ff;">تصفح اشتراكاتنا المميزة</h4>
+            <div class="marquee-scroll-area">
+              <div class="marquee-track">
+                <!-- Set 1 -->
+                <div class="marquee-item" onclick="scrollToService('شاهد (Shahid)')">
+                <img src="./-_Shahid.jpg" alt="شاهد">
+                <span>شاهد</span>
+              </div>
+              <div class="marquee-item" onclick="scrollToService('شات جي بي تي (ChatGPT)')">
+                <img src="./ChatGPT_Logo_-_Chat_gpt_Icon_on_White_Background.jpg" alt="ChatGPT">
+                <span>ChatGPT</span>
+              </div>
+              <div class="marquee-item" onclick="scrollToService('جيميناي (Gemini)')">
+                <img src="./Gemini.jpg" alt="Gemini">
+                <span>Gemini</span>
+              </div>
+              <div class="marquee-item" onclick="scrollToService('كانفا برو (Canva)')">
+                <img src="./Je_manie_Canva_a_la_perfection_.jpg" alt="Canva">
+                <span>Canva</span>
+              </div>
+              <div class="marquee-item" onclick="scrollToService('أدوبي (Adobe)')">
+                <img src="./Adobe_Creative_Cloud.jpg" alt="Adobe">
+                <span>Adobe</span>
+              </div>
+              <div class="marquee-item" onclick="scrollToService('سناب شات بلس')">
+                <img src="./Snapchat_Logo_PNG_Vector_EPS_Free_Download.jpg" alt="سناب بلس">
+                <span>سناب بلس</span>
+              </div>
+              <div class="marquee-item" onclick="scrollToService('نتفليكس مشترك')">
+                <img src="./Netflix_logo_designed_in_pixellabe_mobile_.jpg" alt="نتفليكس">
+                <span>نتفليكس</span>
+              </div>
+              <div class="marquee-item" onclick="scrollToService('يوتيوب بريميوم')">
+                <img src="./YouTube_Logo_Png-removebg-preview.png" alt="يوتيوب">
+                <span>يوتيوب</span>
+              </div>
+              
+              <!-- Set 2 -->
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('شاهد (Shahid)')">
+                <img src="./-_Shahid.jpg" alt="شاهد">
+                <span>شاهد</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('شات جي بي تي (ChatGPT)')">
+                <img src="./ChatGPT_Logo_-_Chat_gpt_Icon_on_White_Background.jpg" alt="ChatGPT">
+                <span>ChatGPT</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('جيميناي (Gemini)')">
+                <img src="./Gemini.jpg" alt="Gemini">
+                <span>Gemini</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('كانفا برو (Canva)')">
+                <img src="./Je_manie_Canva_a_la_perfection_.jpg" alt="Canva">
+                <span>Canva</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('أدوبي (Adobe)')">
+                <img src="./Adobe_Creative_Cloud.jpg" alt="Adobe">
+                <span>Adobe</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('سناب شات بلس')">
+                <img src="./Snapchat_Logo_PNG_Vector_EPS_Free_Download.jpg" alt="سناب بلس">
+                <span>سناب بلس</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('نتفليكس مشترك')">
+                <img src="./Netflix_logo_designed_in_pixellabe_mobile_.jpg" alt="نتفليكس">
+                <span>نتفليكس</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('يوتيوب بريميوم')">
+                <img src="./YouTube_Logo_Png-removebg-preview.png" alt="يوتيوب">
+                <span>يوتيوب</span>
+              </div>
+              
+              <!-- Set 3 -->
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('شاهد (Shahid)')">
+                <img src="./-_Shahid.jpg" alt="شاهد">
+                <span>شاهد</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('شات جي بي تي (ChatGPT)')">
+                <img src="./ChatGPT_Logo_-_Chat_gpt_Icon_on_White_Background.jpg" alt="ChatGPT">
+                <span>ChatGPT</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('جيميناي (Gemini)')">
+                <img src="./Gemini.jpg" alt="Gemini">
+                <span>Gemini</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('كانفا برو (Canva)')">
+                <img src="./Je_manie_Canva_a_la_perfection_.jpg" alt="Canva">
+                <span>Canva</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('أدوبي (Adobe)')">
+                <img src="./Adobe_Creative_Cloud.jpg" alt="Adobe">
+                <span>Adobe</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('سناب شات بلس')">
+                <img src="./Snapchat_Logo_PNG_Vector_EPS_Free_Download.jpg" alt="سناب بلس">
+                <span>سناب بلس</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('نتفليكس مشترك')">
+                <img src="./Netflix_logo_designed_in_pixellabe_mobile_.jpg" alt="نتفليكس">
+                <span>نتفليكس</span>
+              </div>
+              <div class="marquee-item" aria-hidden="true" onclick="scrollToService('يوتيوب بريميوم')">
+                <img src="./YouTube_Logo_Png-removebg-preview.png" alt="يوتيوب">
+                <span>يوتيوب</span>
+              </div>
+            </div>
+            </div>
+          </div>
+          <div class="section-title fade-up delay-1">
+            <h3>الخدمات والباقات</h3>
+            <p>اختار الخدمة أولًا، وبعدها تظهر باقات 1 شهر، 3 شهور، 6 شهور، سنة</p>
+          </div>
+          <div class="service-list">
+            <details class="service-item fade-up delay-1" data-service="شاهد (Shahid)">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./-_Shahid.jpg" alt="شاهد (Shahid)" onerror="this.src=''" />
+                    <span>شاهد (Shahid)</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات شاهد (Shahid)</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="service-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; background: rgba(0,0,0,0.25); padding: 6px; border-radius: 12px; border: 1px solid rgba(153, 225, 255, 0.15);">
+                  <div class="service-tab active" data-target="shahid-shared" style="flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; position: relative; transition: 0.3s; font-size: 0.95rem;">
+                    شاهد مشترك
+                    <span class="badge" style="position: absolute; top: -10px; right: -5px; background: #ff4757; color: white; font-size: 0.65rem; padding: 3px 6px; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(255,0,0,0.3);">الأكثر طلباً 🔥</span>
+                  </div>
+                  <div class="service-tab " data-target="shahid-private" style="flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; position: relative; transition: 0.3s; font-size: 0.95rem;">
+                    شاهد شخصي
+                    
+                  </div>
+                </div>
+                <div id="shahid-shared" class="plan-group plan-grid active" data-service="شاهد مشترك" style="display: grid;">
+                  <article class="plan-card">
+                    <h5>شهر</h5>
+                    <div class="plan-price"><strong>3 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>مشاركة حساب</li>
+                    </ul>
+                  </article>
+
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>5 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>مشاركة حساب</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>10 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>توفير جيد</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>12 شهر</h5>
+                    <div class="plan-price"><strong>15 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>أفضل قيمة</li>
+                    </ul>
+                  </article>
+                </div>
+                <div id="shahid-private" class="plan-group plan-grid " data-service="شاهد شخصي" style="display: none;">
+                  <article class="plan-card">
+                    <h5>شهر</h5>
+                    <div class="plan-price"><strong>4 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>حساب شخصي (5 بروفايلات)</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>9 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>حساب شخصي (5 بروفايلات)</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>15 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>حساب شخصي (5 بروفايلات)</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>19 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>حساب شخصي (5 بروفايلات)</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+            <details class="service-item fade-up delay-2" data-service="شات جي بي تي (ChatGPT)">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./ChatGPT_Logo_-_Chat_gpt_Icon_on_White_Background.jpg" alt="شات جي بي تي (ChatGPT)" onerror="this.src=''" />
+                    <span>شات جي بي تي (ChatGPT)</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات شات جي بي تي (ChatGPT)</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="service-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; background: rgba(0,0,0,0.25); padding: 6px; border-radius: 12px; border: 1px solid rgba(153, 225, 255, 0.15);">
+                  <div class="service-tab active" data-target="chatgpt-shared" style="flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; position: relative; transition: 0.3s; font-size: 0.95rem;">
+                    شات جي بي تي مشترك
+                    <span class="badge" style="position: absolute; top: -10px; right: -5px; background: #ff4757; color: white; font-size: 0.65rem; padding: 3px 6px; border-radius: 8px; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(255,0,0,0.3);">الأكثر طلباً 🔥</span>
+                  </div>
+                  <div class="service-tab " data-target="chatgpt-private" style="flex: 1; padding: 10px; text-align: center; border-radius: 8px; cursor: pointer; position: relative; transition: 0.3s; font-size: 0.95rem;">
+                    على إيميلك
+                    
+                  </div>
+                </div>
+                <div id="chatgpt-shared" class="plan-group plan-grid active" data-service="شات جي بي تي مشترك" style="display: grid;">
+                  <article class="plan-card">
+                    <h5>شهر</h5>
+                    <div class="plan-price"><strong>3 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>استخدام مشترك</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>7 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>توفير ممتاز</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>13 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>قيمة رائعة</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>19 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>أفضل سعر شهري</li>
+                    </ul>
+                  </article>
+                </div>
+                <div id="chatgpt-private" class="plan-group plan-grid " data-service="على إيميلك" style="display: none;">
+                  <article class="plan-card">
+                    <h5>شهر</h5>
+                    <div class="plan-price"><strong>7 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>على إيميلك الشخصي</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>15 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>على إيميلك الشخصي</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>19 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>على إيميلك الشخصي</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>35 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>على إيميلك الشخصي</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+            <details class="service-item fade-up delay-3" data-service="جيميناي (Gemini)">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./Gemini.jpg" alt="جيميناي (Gemini)" onerror="this.src=''" />
+                    <span>جيميناي (Gemini)</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات جيميناي (Gemini)</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="plan-grid">
+                  <article class="plan-card">
+                    <h5>شهر</h5>
+                    <div class="plan-price"><strong>4 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>ميزات الذكاء الاصطناعي</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>15 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>أفضل توفير</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+            <details class="service-item fade-up delay-1" data-service="كانفا برو (Canva)">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./Je_manie_Canva_a_la_perfection_.jpg" alt="كانفا برو (Canva)" onerror="this.src=''" />
+                    <span>كانفا برو (Canva)</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات كانفا برو (Canva)</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="plan-grid">
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>4 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>تصميم بلا حدود</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+            <details class="service-item fade-up delay-2" data-service="أدوبي (Adobe)">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./Adobe_Creative_Cloud.jpg" alt="أدوبي (Adobe)" onerror="this.src=''" />
+                    <span>أدوبي (Adobe)</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات أدوبي (Adobe)</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="plan-grid">
+                  <article class="plan-card">
+                    <h5>شهر</h5>
+                    <div class="plan-price"><strong>15 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>رسمي 100%</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>20 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>رسمي 100%</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>4 أشهر</h5>
+                    <div class="plan-price"><strong>25 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>رسمي 100%</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>40 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>رسمي 100%</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+            <details class="service-item fade-up delay-3" data-service="سناب شات بلس">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./Snapchat_Logo_PNG_Vector_EPS_Free_Download.jpg" alt="سناب شات بلس" onerror="this.src=''" />
+                    <span>سناب شات بلس</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات سناب شات بلس</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="plan-grid">
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>6 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>مطلوب اليوزر فقط</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>8 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>مطلوب اليوزر فقط</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>20 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>مطلوب اليوزر فقط</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+            <details class="service-item fade-up delay-1" data-service="نتفليكس مشترك">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./Netflix_logo_designed_in_pixellabe_mobile_.jpg" alt="نتفليكس مشترك" onerror="this.src=''" />
+                    <span>نتفليكس مشترك</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات نتفليكس مشترك</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="plan-grid">
+                  <article class="plan-card">
+                    <h5>شهر</h5>
+                    <div class="plan-price"><strong>3 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>باقة 4K مشتركة</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>5 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>باقة 4K مشتركة</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>10 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>باقة 4K مشتركة</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>15 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>باقة 4K مشتركة</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+            <details class="service-item fade-up delay-2" data-service="يوتيوب بريميوم">
+              <summary>
+                <div class="service-name-wrap">
+                  <span class="service-name" style="font-size: 1.2rem; gap: 15px; line-height: 1.5; color: #ecf6ff;">
+                    <img class="service-logo" src="./YouTube_Logo_Png-removebg-preview.png" alt="يوتيوب بريميوم" onerror="this.src=''" />
+                    <span>يوتيوب بريميوم</span>
+                  </span>
+                  <span class="service-hint">اضغط لعرض باقات يوتيوب بريميوم</span>
+                </div>
+                <span class="summary-arrow">⌄</span>
+              </summary>
+              <div class="service-content">
+                <div class="plan-grid">
+                  <article class="plan-card">
+                    <h5>3 أشهر</h5>
+                    <div class="plan-price"><strong>10 دنانير</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>على إيميلك الشخصي</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>6 أشهر</h5>
+                    <div class="plan-price"><strong>15 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>على إيميلك الشخصي</li>
+                    </ul>
+                  </article>
+                  <article class="plan-card">
+                    <h5>سنة</h5>
+                    <div class="plan-price"><strong>20 دينار</strong></div>
+                    <ul class="plan-features">
+                      <li>تفعيل سريع</li>
+                      <li>على إيميلك الشخصي</li>
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="container">
+          <div class="section-title fade-up delay-1">
+            <h3>ليش تختار Digital Store؟</h3>
+            <p>خدمة واضحة وسريعة ومنظمة من أول رسالة لحد التفعيل</p>
+          </div>
+          <div class="why">
+            <article class="why-item fade-up delay-1">
+              <h5>⚙️ تسليم سريع</h5>
+              <p>نجهز طلبك مباشرة بعد الدفع ونبقى معك حتى تمام التفعيل.</p>
+            </article>
+            <article class="why-item fade-up delay-2">
+              <h5>🛡️ موثوقية عالية</h5>
+              <p>اشتراكات رقمية مستقرة مع متابعة مستمرة في حال ظهور أي مشكلة.</p>
+            </article>
+            <article class="why-item fade-up delay-3">
+              <h5>💬 دعم مباشر</h5>
+              <p>تواصل سريع عبر واتساب للرد على الاستفسارات وتحديثات الطلب.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="reviews" class="section">
+        <div class="container">
+          <div class="section-title fade-up delay-1">
+            <h3>آراء العملاء</h3>
+            <p>تجارب حقيقية من عملاء اشتروا وفعّلوا الاشتراكات معنا</p>
+          </div>
+          <div class="review-grid">
+            <article class="review-card fade-up delay-1">
+              <span class="review-stars">★★★★★</span>
+              <p>"الخدمة جدًا سريعة، دفعت وتفعل الاشتراك بنفس اليوم بدون أي تأخير."</p>
+              <strong>محمد - اشتراك Netflix</strong>
+            </article>
+            <article class="review-card fade-up delay-2">
+              <span class="review-stars">★★★★★</span>
+              <p>"الأسعار ممتازة والدعم متعاون جدًا، رجعت جددت معهم أكثر من مرة."</p>
+              <strong>سارة - اشتراك Shahid VIP</strong>
+            </article>
+            <article class="review-card fade-up delay-3">
+              <span class="review-stars">★★★★★</span>
+              <p>"اشتراك ChatGPT وصلني سريع والدعم كان متابع معي خطوة بخطوة."</p>
+              <strong>أحمد - اشتراك ChatGPT Plus</strong>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" class="section">
+        <div class="container">
+          <div class="section-title fade-up delay-1">
+            <h3>الأسئلة المتكررة</h3>
+            <p>إجابات سريعة على أكثر الأسئلة قبل الطلب</p>
+          </div>
+          <div class="faq-list">
+            <details class="faq-item fade-up delay-1">
+              <summary>كم يحتاج وقت تفعيل الاشتراك؟</summary>
+              <p>غالبًا يتم التفعيل خلال دقائق إلى ساعات حسب نوع الاشتراك، وبحد أقصى خلال نفس اليوم.</p>
+            </details>
+            <details class="faq-item fade-up delay-2">
+              <summary>شو طرق الدفع المتاحة؟</summary>
+              <p>حاليًا الدفع عبر زين كاش، ويمكن التواصل معنا عبر واتساب للتأكيد قبل التحويل.</p>
+            </details>
+            <details class="faq-item fade-up delay-3">
+              <summary>هل في متابعة بعد التفعيل؟</summary>
+              <p>نعم، نوفر متابعة مباشرة ودعم سريع في حال ظهرت أي مشكلة أثناء الاستخدام.</p>
+            </details>
+            <details class="faq-item fade-up delay-2">
+              <summary>كيف أجدد الاشتراك بعد الانتهاء؟</summary>
+              <p>تواصل معنا على واتساب، ونرسل لك خيارات التجديد مباشرة حسب المدة المناسبة لك.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" class="section">
+        <div class="container">
+          <div class="cta fade-up delay-1">
+            <h3>جاهز تبدأ؟</h3>
+            <p>أرسل اسم الاشتراك المطلوب الآن، وخلال دقائق نرتب لك كل التفاصيل.</p>
+            <div class="payment-actions">
+              <a class="btn btn-primary" href="https://wa.me/962798205807" target="_blank" rel="noreferrer">
+                تواصل عبر واتساب
+              </a>
+              <button class="btn btn-ghost" id="zainCashBtn" type="button">الدفع عبر زين كاش</button>
+              <button class="btn btn-ghost copy-number-btn" id="zainCashCopyBtn" type="button">نسخ رقم زين كاش</button>
+            </div>
+            <p class="zaincash-number" id="zainCashNumber" hidden>
+              رقم زين كاش للتحويل:
+              <a href="tel:+962796107083" dir="ltr">+962 7 9610 7083</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+<footer>
+  <div class="container">
+    
+    <!-- الجهة اليسار -->
+    <div class="footer-left">
+      <p>© <span id="year"></span> Digital Store - جميع الحقوق محفوظة</p>
+      <p class="owner">Owner: محمود مجدلاوي</p>
+    </div>
+
+    <!-- الجهة اليمين -->
+    <div class="footer-right">
+      <a href="https://www.instagram.com/digital.jo1" target="_blank">
+        <i class="fa-brands fa-instagram"></i>
+      </a>
+
+      <a href="https://www.facebook.com/share/18RfJorUCE/" target="_blank">
+        <i class="fa-brands fa-facebook"></i>
+      </a>
+
+      <a href="tel:0798205807" class="phone">
+        0798205807
+      </a>
+    </div>
+
+  </div>
+</footer>
+
+
+    <a
+      class="whatsapp-float"
+      href="https://wa.me/962798205807"
+      target="_blank"
+      rel="noreferrer"
+      aria-label="تواصل عبر واتساب"
+      title="تواصل عبر واتساب"
+    >
+      <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <path
+          d="M19.11 17.64c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.61.14-.18.27-.7.88-.86 1.06-.16.18-.32.2-.59.07-.27-.14-1.14-.42-2.17-1.33-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.56.12-.12.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.61-1.47-.84-2.01-.22-.53-.45-.46-.61-.47-.16-.01-.34-.01-.52-.01-.18 0-.48.07-.73.34-.25.27-.95.93-.95 2.27 0 1.34.98 2.64 1.12 2.82.14.18 1.93 2.95 4.67 4.14.65.28 1.16.45 1.56.58.66.21 1.26.18 1.73.11.53-.08 1.6-.65 1.83-1.28.23-.63.23-1.17.16-1.28-.07-.11-.25-.18-.52-.32z"
+        />
+        <path
+          d="M16 3C8.83 3 3 8.65 3 15.61c0 2.44.73 4.83 2.11 6.86L4 29l6.77-1.96c1.98 1.07 4.21 1.64 6.48 1.64 7.17 0 13-5.65 13-12.61C30.25 8.65 23.17 3 16 3zm0 22.84c-2.09 0-4.14-.56-5.92-1.62l-.42-.25-4.01 1.16 1.2-3.86-.28-.4a10.2 10.2 0 0 1-1.68-5.66c0-5.63 4.77-10.21 10.63-10.21 6.78 0 12.34 4.58 12.34 10.21 0 5.63-5.56 10.21-12.34 10.21z"
+        />
+      </svg>
+    </a>
+
+    <div class="promo-modal" id="promoModal" hidden>
+      <div class="promo-card">
+        <button class="promo-close" id="promoClose">&times;</button>
+        <div class="promo-badge">عرض حصري لك 🔥</div>
+        <img id="promoImg" src="./-_Shahid.jpg" alt="Offer" class="promo-img">
+        <h3 id="promoTitle">شاهد مشترك - سنة</h3>
+        <p id="promoDesc">استمتع بأقوى المسلسلات والأفلام مع باقة شاهد المشترك لمدة سنة كاملة.</p>
+        <div class="promo-price">
+          <strong id="promoPrice">15 دينار</strong>
+        </div>
+        <button class="btn btn-primary" id="promoAction">أضف للسلة الآن</button>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
