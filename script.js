@@ -200,8 +200,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Promo Popup Logic
   const offers = [
     { title: "شاهد مشترك - سنة", desc: "استمتع بأقوى المسلسلات والأفلام مع باقة شاهد المشترك لمدة سنة كاملة.", price: "15 دينار", img: "./-_Shahid.jpg" },
-    { title: "نتفليكس - شهر", desc: "أحدث الأفلام والمسلسلات الحصرية بدقة عالية وبدون انقطاع.", price: "4 دنانير", img: "./Netflix_logo_designed_in_pixellabe_mobile_.jpg" },
-    { title: "يوتيوب بريميوم - سنة", desc: "مشاهدة بدون إعلانات، تشغيل في الخلفية، يوتيوب ميوزك.", price: "18 دينار", img: "./YouTube_Logo_Png-removebg-preview.png" },
+    { title: "نتفليكس - شهر", desc: "أحدث الأفلام والمسلسلات الحصرية بدقة عالية وبدون انقطاع.", price: "3 دنانير", img: "./Netflix_logo_designed_in_pixellabe_mobile_.jpg" },
+    { title: "يوتيوب بريميوم - سنة", desc: "مشاهدة بدون إعلانات، تشغيل في الخلفية، يوتيوب ميوزك.", price: "20 دينار", img: "./YouTube_Logo_Png-removebg-preview.png" },
     { title: "ChatGPT Plus", desc: "أنجز أعمالك ومهامك بسرعة مع الذكاء الاصطناعي الأقوى عالمياً.", price: "19 دينار", img: "./ChatGPT_Logo_-_Chat_gpt_Icon_on_White_Background.jpg" },
     { title: "سناب شات بلس", desc: "مميزات حصرية واشتراك مميز بانتظارك، تميز بين أصدقائك.", price: "12 دينار", img: "./Snapchat_Logo_PNG_Vector_EPS_Free_Download.jpg" },
   ];
