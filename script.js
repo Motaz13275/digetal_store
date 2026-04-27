@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Configuration ---
   const GOOGLE_CLIENT_ID = "65226075677-5kgkl2q5a08psc9cbqlpdfehvofi8u53.apps.googleusercontent.com";
-  const ADMIN_EMAIL = "motazz.13579@gmail.com";
+  const ADMIN_EMAIL = "digitalstore.jo1.1@gmail.com";
   const WELCOME_SPLASH_SHOW_MS = 900;
   const WHATSAPP_NUMBER = "962798205807";
   const FIREBASE_CONFIG = {
