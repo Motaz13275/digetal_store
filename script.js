@@ -371,14 +371,47 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => cartOpenBtn?.classList.remove("pulse"), 500);
   };
 
-  const checkoutCart = () => {
+  const checkoutCart = async () => {
     if (cartItemsCache.length === 0) return alert("السلة فارغة");
-    let message = "مرحبًا Digital Store، أود طلب الاشتراكات التالية:\n\n";
+    
+    const savedUser = getSavedUser();
+    let customerNo = "N/A";
+    
+    // محاولة جلب الرقم من Firestore مباشرة لضمان الدقة
+    if (savedUser && savedUser.email && subscribersCollectionRef) {
+        try {
+            const id = `email_${encodeURIComponent(savedUser.email.toLowerCase())}`;
+            const doc = await subscribersCollectionRef.doc(id).get();
+            if (doc.exists) {
+                customerNo = doc.data().customerNumber || "N/A";
+            }
+        } catch (e) {
+            console.error("Error fetching customer number for WA:", e);
+        }
+    }
+
+    const userNameVal = savedUser?.name || "عميل غير معروف";
+    const userEmailVal = savedUser?.email || "غير متوفر";
+
+    let message = `*طلب جديد من متجر Digital Store* 🛒\n\n`;
+    message += `👤 *بيانات العميل:*\n`;
+    message += `• *الاسم:* ${userNameVal}\n`;
+    message += `• *رقم العميل:* \`${customerNo}\`\n`;
+    message += `• *البريد:* ${userEmailVal}\n\n`;
+    
+    message += `📦 *الطلبات:*\n`;
     cartItemsCache.forEach((item, i) => {
-      message += `${i + 1}. ${item.service} (${item.duration}) - ${item.price}\n`;
+      message += `*${i + 1}.* ${item.service} — (${item.duration})\n`;
+      message += `   💰 *السعر:* ${item.price}\n`;
     });
+    
     const total = cartItemsCache.reduce((sum, item) => sum + (parseFloat(item.price.replace(" دينار", "").replace(" دنانير", "")) || 0), 0);
-    message += `\nالإجمالي: ${total} دينار`;
+    
+    message += `\n────────────────\n`;
+    message += `💵 *إجمالي المبلغ:* *${total} دينار*\n`;
+    message += `────────────────\n\n`;
+    message += `✅ *يرجى تأكيد الطلب وتجهيز الاشتراك.*`;
+
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
