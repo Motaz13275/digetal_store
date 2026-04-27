@@ -295,6 +295,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Helper Functions ---
   const getTodayDateKey = () => new Date().toISOString().split('T')[0];
+  const addMonthsToDateKey = (dateKey, monthsToAdd) => {
+    const d = new Date(`${dateKey}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return dateKey;
+    d.setMonth(d.getMonth() + (monthsToAdd || 0));
+    return d.toISOString().split('T')[0];
+  };
   const getSavedUser = () => {
     try {
       const val = localStorage.getItem("ds_user");
@@ -334,6 +340,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch { cartItemsCache = []; }
   };
 
+  let currentDiscount = 0;
+  let appliedPromoCode = "";
+
   const saveCart = () => {
     localStorage.setItem("ds_cart", JSON.stringify(cartItemsCache));
     updateCartUI();
@@ -361,7 +370,90 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
       }).join("");
     }
-    if (cartTotalPrice) cartTotalPrice.textContent = `${total} دينار`;
+    
+    // تطبيق الخصم إذا وجد
+    const finalTotal = Math.max(0, total - currentDiscount);
+    const discountRow = document.getElementById("discountRow");
+    const discountValue = document.getElementById("discountValue");
+    
+    if (currentDiscount > 0) {
+        if (discountRow) discountRow.hidden = false;
+        if (discountValue) discountValue.textContent = `-${currentDiscount} دينار`;
+    } else {
+        if (discountRow) discountRow.hidden = true;
+    }
+
+    if (cartTotalPrice) cartTotalPrice.textContent = `${finalTotal} دينار`;
+  };
+
+  const applyPromoCode = async () => {
+    const input = document.getElementById("promoCodeInput");
+    const msg = document.getElementById("promoStatusMsg");
+    const code = input.value.trim().toUpperCase();
+    const savedUser = getSavedUser();
+
+    if (!code) return;
+    if (!savedUser) {
+        msg.textContent = "يرجى تسجيل الدخول أولاً لتفعيل الكود";
+        msg.style.color = "#ff6b6b";
+        msg.hidden = false;
+        return;
+    }
+
+    msg.textContent = "جاري التحقق...";
+    msg.style.color = "#3498db";
+    msg.hidden = false;
+
+    try {
+        // جلب بيانات الكود من Firestore (يجب أن يكون لديك مجموعة باسم promos)
+        const promoDoc = await firestoreDb.collection("promos").doc(code).get();
+        
+        if (!promoDoc.exists) {
+            msg.textContent = "كود الخصم غير صحيح أو منتهي";
+            msg.style.color = "#ff6b6b";
+            return;
+        }
+
+        const promoData = promoDoc.data();
+        
+        // التحقق إذا كان المستخدم استخدم الكود سابقاً
+        const userId = `email_${encodeURIComponent(savedUser.email.toLowerCase())}`;
+        const userDoc = await subscribersCollectionRef.doc(userId).get();
+        const userData = userDoc.data();
+        const usedPromos = userData.usedPromos || [];
+
+        if (usedPromos.includes(code)) {
+            msg.textContent = "لقد استخدمت هذا الكود من قبل!";
+            msg.style.color = "#ff6b6b";
+            return;
+        }
+
+        // تطبيق الخصم
+        currentDiscount = promoData.value || 0;
+        appliedPromoCode = code;
+        updateCartUI();
+
+        msg.textContent = `تم تفعيل الخصم بنجاح! (-${currentDiscount} دينار)`;
+        msg.style.color = "#2ecc71";
+        input.disabled = true;
+        document.getElementById("applyPromoBtn").disabled = true;
+
+    } catch (e) {
+        console.error("Promo Error:", e);
+        msg.textContent = "حدث خطأ أثناء تفعيل الكود";
+        msg.style.color = "#ff6b6b";
+    }
+  };
+
+  // ربط الأزرار عند تحميل الصفحة
+  const setupPromoEvents = () => {
+    const applyPromoBtn = document.getElementById("applyPromoBtn");
+    if (applyPromoBtn) {
+        applyPromoBtn.onclick = (e) => {
+            e.preventDefault();
+            applyPromoCode();
+        };
+    }
   };
 
   const addToCart = (product) => {
@@ -413,6 +505,21 @@ document.addEventListener("DOMContentLoaded", () => {
     message += `✅ *يرجى تأكيد الطلب وتجهيز الاشتراك.*`;
 
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+    
+    // تسجيل الكود كمستهلك في قاعدة البيانات لمنع التكرار
+    if (appliedPromoCode && savedUser && subscribersCollectionRef) {
+        const userId = `email_${encodeURIComponent(savedUser.email.toLowerCase())}`;
+        try {
+            await subscribersCollectionRef.doc(userId).update({
+                usedPromos: firebase.firestore.FieldValue.arrayUnion(appliedPromoCode)
+            });
+            // إعادة ضبط الخصم للطلب القادم
+            currentDiscount = 0;
+            appliedPromoCode = "";
+        } catch (e) {
+            console.error("Error saving used promo:", e);
+        }
+    }
   };
 
   // --- Admin System ---
@@ -432,8 +539,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       await subscribersCollectionRef.doc(id).update({
         ...data,
-        updatedAt: new Date().toISOString(),
-        isNew: false
+        updatedAt: new Date().toISOString()
       });
       pullSubscribers();
     } catch (error) {
@@ -452,6 +558,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  let adminActiveTab = "new";
+
   const renderAdminPanel = () => {
     const today = new Date();
     const todayKey = getTodayDateKey();
@@ -459,6 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let totalCount = 0, newCount = 0, activeCount = 0, blockedCount = 0, nearCount = 0, expiredCount = 0;
 
     const filtered = subscribersCache.filter(s => {
+      // فلترة البحث أولاً
       const name = String(s.name || "").toLowerCase();
       const email = String(s.email || "").toLowerCase();
       const customerNumber = String(s.customerNumber || "");
@@ -466,56 +575,81 @@ document.addEventListener("DOMContentLoaded", () => {
       
       if (!matchSearch) return false;
 
+      // حساب الحالة للاشتراكات
+      const subs = Array.isArray(s.subscriptions) ? s.subscriptions : [];
       let hasActive = false;
       let hasNear = false;
       let hasExpired = false;
       
-      const subs = Array.isArray(s.subscriptions) ? s.subscriptions : [];
-      if (subs.length > 0) {
-          subs.forEach(sub => {
-              if (sub.end < todayKey) hasExpired = true;
-              else {
-                  const endDate = new Date(sub.end);
-                  const diffDays = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-                  if (diffDays <= 3) hasNear = true;
-                  else hasActive = true;
-              }
-          });
-      } else {
-          if (s.isBlocked) hasExpired = true;
-      }
+      subs.forEach(sub => {
+          if (sub.end < todayKey) hasExpired = true;
+          else {
+              const diffDays = Math.ceil((new Date(sub.end) - today) / (1000 * 60 * 60 * 24));
+              if (diffDays <= 3) hasNear = true;
+              else hasActive = true;
+          }
+      });
 
-      if (adminStatusValue === "all") return true;
-      if (adminStatusValue === "new") return s.isNew;
-      if (adminStatusValue === "blocked") return s.isBlocked;
-      if (adminStatusValue === "active") return hasActive || hasNear;
-      if (adminStatusValue === "near_expiry") return hasNear;
-      if (adminStatusValue === "expired") return hasExpired && !hasActive && !hasNear;
+      // منطق التبويبات (Tabs) الجديد
+      if (adminActiveTab === "new") return s.isNew;
+      
+      // المشترك "الفعال" هو الذي ليس بجديد ولديه اشتراك لم ينتهِ بعد أو تم نقله يدوياً للفعال
+      if (adminActiveTab === "active") {
+          return !s.isNew && !s.isExpiredManually && (hasActive || hasNear || s.forceActive);
+      }
+      
+      // المشترك "المنتهي" هو الذي ليس بجديد وليس لديه أي اشتراك فعال حالياً أو تم نقله يدوياً للمنتهي
+      if (adminActiveTab === "expired") {
+          return !s.isNew && (s.isExpiredManually || (hasExpired && !hasActive && !hasNear && !s.forceActive));
+      }
+      
+      if (adminActiveTab === "all") return true;
       
       return true;
     });
 
-    // Calculate stats globally
+    // تحديث الأرقام الإجمالية (دائماً من كامل الكاش)
     subscribersCache.forEach(s => {
       totalCount++;
       if (s.isNew) newCount++;
       if (s.isBlocked) blockedCount++;
+
       const subs = Array.isArray(s.subscriptions) ? s.subscriptions : [];
-      let sActive = false, sNear = false, sExp = false;
+      let sHasActive = false;
+      let sHasNear = false;
+      let sHasExpired = false;
+
       subs.forEach(sub => {
-          if (sub.end < todayKey) sExp = true;
-          else {
-              const diffDays = Math.ceil((new Date(sub.end) - today) / (1000 * 60 * 60 * 24));
-              if (diffDays <= 3) sNear = true;
-              else sActive = true;
-          }
+        if (sub.end < todayKey) sHasExpired = true;
+        else {
+          const diffDays = Math.ceil((new Date(sub.end) - today) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 3) sHasNear = true;
+          else sHasActive = true;
+        }
       });
-      if (sActive || sNear) activeCount++;
-      if (sNear) nearCount++;
-      if ((sExp && !sActive && !sNear) || (!sActive && !sNear && !s.isNew && !s.isBlocked)) expiredCount++;
+
+      const isActive = !s.isNew && !s.isExpiredManually && (s.forceActive || sHasActive || sHasNear);
+      const isExpired = !s.isNew && (s.isExpiredManually || (sHasExpired && !sHasActive && !sHasNear && !s.forceActive));
+
+      if (isActive) activeCount++;
+      if (sHasNear && !s.isNew) nearCount++;
+      if (isExpired) expiredCount++;
     });
 
-    if (document.getElementById("adminTotalCount")) document.getElementById("adminTotalCount").textContent = totalCount;
+    if (document.getElementById("adminTotalCount")) document.getElementById("adminTotalCount").textContent = 1000 + totalCount;
+    
+    // تحديث عداد المستخدمين في الصفحة الرئيسية (التوب بار)
+    const homeCounter = document.getElementById("totalUsersCounter");
+    if (homeCounter) {
+        homeCounter.innerHTML = `<i class="fa-solid fa-users" style="color: var(--brand); font-size: 0.8rem;"></i> أكثر من <strong>${1000 + totalCount}</strong> عميل يثق بنا`;
+        homeCounter.style.color = "#fff";
+    }
+
+    // تحديث عداد قسم الـ Hero
+    const heroStatsStrong = document.querySelectorAll(".hero-stat-item strong");
+    if (heroStatsStrong && heroStatsStrong.length > 0) {
+        heroStatsStrong[0].textContent = `+${1000 + totalCount}`;
+    }
     if (document.getElementById("adminNewCount")) document.getElementById("adminNewCount").textContent = newCount;
     if (document.getElementById("adminActiveCount")) document.getElementById("adminActiveCount").textContent = activeCount;
     if (document.getElementById("adminBlockedCount")) document.getElementById("adminBlockedCount").textContent = blockedCount;
@@ -565,15 +699,34 @@ document.addEventListener("DOMContentLoaded", () => {
           <td class="subs-cell">
             <div class="subs-list">${subsHtml}</div>
             <button class="btn btn-ghost add-sub-btn" style="width:100%; margin-top:8px; border:1px dashed rgba(149, 214, 255, 0.3); font-size:0.85rem; color:var(--brand);"><i class="fa-solid fa-plus"></i> إضافة اشتراك جديد للعميل</button>
+            <button class="btn btn-ghost add-month-btn" style="width: 100%; padding: 8px; font-size: 0.85rem; color: var(--brand); border: 1px solid rgba(149, 214, 255, 0.35);">
+              <i class="fa-solid fa-calendar-plus"></i> إضافة شهر
+            </button>
           </td>
           <td><textarea class="admin-input notes" placeholder="اكتب ملاحظاتك هنا...">${s.notes || ''}</textarea></td>
           <td>
-            <div class="admin-row-actions">
-              <button class="btn btn-primary save-sub" style="background:var(--brand); color:#00224e; font-weight:bold;"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
-              <button class="btn ${s.isBlocked ? 'btn-unblock' : 'btn-danger'}" data-action="toggle-block" style="background:${s.isBlocked ? '#3498db' : 'transparent'}; border: 1px solid ${s.isBlocked ? '#3498db' : '#e74c3c'}; color:${s.isBlocked ? '#fff' : '#e74c3c'}">
-                <i class="fa-solid ${s.isBlocked ? 'fa-unlock' : 'fa-ban'}"></i> ${s.isBlocked ? 'فك الحظر' : 'حظر'}
-              </button>
-              <button class="btn btn-ghost delete-sub" style="color:#ff6b6b; border: 1px solid rgba(255,107,107,0.2);"><i class="fa-solid fa-user-minus"></i> حذف</button>
+            <div class="admin-row-actions" style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn btn-primary save-sub" style="background: var(--brand); color: #00224e; font-weight: bold; width: 100%;"><i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات</button>
+              
+              <div style="background: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 8px; border: 1px solid rgba(149, 214, 255, 0.1);">
+                <label style="display: block; font-size: 0.7rem; color: var(--text-soft); margin-bottom: 4px;">نقل إلى قسم:</label>
+                <div style="display: flex; gap: 4px;">
+                  <select class="move-status-select" style="flex: 1; padding: 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: #00224e; color: #fff; font-size: 0.8rem;">
+                      <option value="" disabled selected>اختر فئة...</option>
+                      <option value="new">🆕 المستخدمين الجدد</option>
+                      <option value="active">✅ الاشتراكات الفعالة</option>
+                      <option value="expired">❌ المنتهية / المسجلة</option>
+                  </select>
+                  <button class="btn btn-ghost move-status-btn" title="تأكيد النقل" style="padding: 6px 10px; color: var(--brand); border: 1px solid var(--brand); border-radius: 6px;"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 4px;">
+                <button class="btn ${s.isBlocked ? 'btn-unblock' : 'btn-danger'}" data-action="toggle-block" style="flex: 1; padding: 8px; font-size: 0.8rem; background: ${s.isBlocked ? '#3498db' : 'transparent'}; border: 1px solid ${s.isBlocked ? '#3498db' : '#e74c3c'}; color: ${s.isBlocked ? '#fff' : '#e74c3c'}">
+                  <i class="fa-solid ${s.isBlocked ? 'fa-unlock' : 'fa-ban'}"></i> ${s.isBlocked ? 'فك الحظر' : 'حظر'}
+                </button>
+                <button class="btn btn-ghost delete-sub" style="flex: 1; padding: 8px; font-size: 0.8rem; color: #ff6b6b; border: 1px solid rgba(255,107,107,0.2);"><i class="fa-solid fa-trash-can"></i> حذف</button>
+              </div>
             </div>
           </td>
         </tr>
@@ -659,12 +812,74 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // --- Promo Admin System ---
+  const pullPromos = async () => {
+    if (!firestoreDb) return;
+    const list = document.getElementById("promosList");
+    try {
+        const snapshot = await firestoreDb.collection("promos").get();
+        list.innerHTML = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return `
+                <div style="background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px;">
+                    <span style="color: #fff; font-weight: bold;">${doc.id}</span>
+                    <span style="color: #2ecc71; font-size: 0.8rem;">(-${data.value}د.أ)</span>
+                    <button onclick="deletePromoCode('${doc.id}')" style="background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 2px;"><i class="fa-solid fa-times"></i></button>
+                </div>
+            `;
+        }).join("");
+        if (snapshot.empty) list.innerHTML = `<p style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">لا توجد أكواد حالياً</p>`;
+    } catch (e) { console.error("Error pulling promos:", e); }
+  };
+
+  window.deletePromoCode = async (code) => {
+    if (!confirm(`هل أنت متأكد من حذف الكود ${code}؟`)) return;
+    try {
+        await firestoreDb.collection("promos").doc(code).delete();
+        pullPromos();
+    } catch (e) { alert("فشل الحذف"); }
+  };
+
+  const addPromoCode = async () => {
+    const code = document.getElementById("newPromoCode").value.trim().toUpperCase();
+    const value = parseFloat(document.getElementById("newPromoValue").value);
+    if (!code || isNaN(value)) return alert("يرجى إدخال كود وقيمة صحيحة");
+
+    try {
+        await firestoreDb.collection("promos").doc(code).set({ value: value });
+        document.getElementById("newPromoCode").value = "";
+        document.getElementById("newPromoValue").value = "";
+        pullPromos();
+    } catch (e) { alert("فشل الإضافة"); }
+  };
+
   const initGoogleAuth = () => {
     if (!window.google) return;
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleCredential
     });
+    
+    // جلب عدد المستخدمين وتحديث العدادات لجميع الزوار فور تحميل الصفحة
+    if (subscribersCollectionRef) {
+        subscribersCollectionRef.get().then(snapshot => {
+            const totalCount = snapshot.size;
+            
+            // تحديث عداد التوب بار
+            const homeCounter = document.getElementById("totalUsersCounter");
+            if (homeCounter) {
+                homeCounter.innerHTML = `<i class="fa-solid fa-users" style="color: var(--brand); font-size: 0.8rem;"></i> أكثر من <strong>${1000 + totalCount}</strong> عميل يثق بنا`;
+                homeCounter.style.color = "#fff";
+            }
+
+            // تحديث عداد قسم الـ Hero
+            const heroStatsStrong = document.querySelectorAll(".hero-stat-item strong");
+            if (heroStatsStrong && heroStatsStrong.length > 0) {
+                heroStatsStrong[0].textContent = `+${1000 + totalCount}`;
+            }
+        }).catch(err => console.error("Error fetching stats for public:", err));
+    }
+
     if (firebaseAuth) {
       firebaseAuth.onAuthStateChanged((authUser) => {
         if (authUser) {
@@ -697,9 +912,30 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // --- Click Event Handlers ---
+  // ربط تبويبات الإدارة
+  document.querySelectorAll(".admin-tab-btn").forEach(btn => {
+      btn.onclick = () => {
+          document.querySelectorAll(".admin-tab-btn").forEach(b => {
+              b.classList.remove("active");
+              b.style.background = "rgba(255, 255, 255, 0.03)";
+              b.style.color = "rgba(255, 255, 255, 0.5)";
+              b.style.borderColor = "rgba(149, 214, 255, 0.1)";
+          });
+          btn.classList.add("active");
+          btn.style.background = "rgba(149, 214, 255, 0.1)";
+          btn.style.color = "#fff";
+          btn.style.borderColor = "var(--brand)";
+          adminActiveTab = btn.dataset.tab;
+          renderAdminPanel();
+      };
+  });
+
   if (logoutBtn) logoutBtn.addEventListener("click", () => { clearUser(); firebaseAuth?.signOut(); location.reload(); });
   if (userMenuBtn) userMenuBtn.addEventListener("click", () => { userDropdown?.toggleAttribute("hidden"); });
-  if (adminTopButton) adminTopButton.onclick = () => { adminPanel?.removeAttribute("hidden"); pullSubscribers(); };
+  if (adminTopButton) adminTopButton.onclick = () => { adminPanel?.removeAttribute("hidden"); pullSubscribers(); pullPromos(); };
+  
+  const addPromoBtn = document.getElementById("addPromoBtn");
+  if (addPromoBtn) addPromoBtn.onclick = addPromoCode;
   if (adminCloseBtn) adminCloseBtn.onclick = () => adminPanel?.setAttribute("hidden", "");
 
   // --- Backup & Restore ---
@@ -766,6 +1002,53 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!tr) return;
       const id = tr.getAttribute("data-id");
 
+      if (e.target.closest('button')?.classList.contains("add-month-btn")) {
+        const btn = e.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحديث...';
+
+        const todayKey = getTodayDateKey();
+        const subsRows = Array.from(tr.querySelectorAll('.sub-row'));
+        if (subsRows.length === 0) {
+          btn.innerHTML = originalHTML;
+          alert("لا يوجد اشتراك لهذا العميل. أضف اشتراك أولاً ثم جدد بإضافة شهر.");
+          return;
+        }
+
+        let targetRow = subsRows[0];
+        let bestEnd = String(subsRows[0].querySelector('.sub-end')?.value || "");
+        subsRows.forEach(row => {
+          const endVal = String(row.querySelector('.sub-end')?.value || "");
+          if (endVal && (!bestEnd || endVal > bestEnd)) {
+            bestEnd = endVal;
+            targetRow = row;
+          }
+        });
+
+        const endInput = targetRow.querySelector('.sub-end');
+        const currentEndKey = String(endInput?.value || "");
+        const baseKey = (currentEndKey && currentEndKey >= todayKey) ? currentEndKey : todayKey;
+        const newEndKey = addMonthsToDateKey(baseKey, 1);
+        if (endInput) endInput.value = newEndKey;
+
+        const subs = [];
+        tr.querySelectorAll(".sub-row").forEach(row => {
+          subs.push({
+            service: row.querySelector(".sub-service").value,
+            start: row.querySelector(".sub-start").value,
+            end: row.querySelector(".sub-end").value
+          });
+        });
+
+        saveSubscriber(id, { subscriptions: subs, notes: tr.querySelector('.notes').value }).then(() => {
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> تم';
+          setTimeout(() => { btn.innerHTML = originalHTML; pullSubscribers(); }, 900);
+        }).catch(() => {
+          btn.innerHTML = originalHTML;
+        });
+        return;
+      }
+
       if (e.target.closest('button')?.dataset.action === "toggle-block") {
         const btn = e.target.closest('button');
         const isBlocked = !btn.classList.contains("btn-unblock");
@@ -786,6 +1069,32 @@ document.addEventListener("DOMContentLoaded", () => {
             <button class="btn-remove-sub" title="حذف الاشتراك"><i class="fa-solid fa-trash"></i></button>
           </div>
         `);
+      }
+      if (e.target.closest('.move-status-btn')) {
+        const select = tr.querySelector(".move-status-select");
+        const newStatus = select.value;
+        if (!newStatus) return;
+        
+        let updates = {};
+        if (newStatus === "new") {
+            updates = { isNew: true, forceActive: false, isExpiredManually: false };
+        } else if (newStatus === "active") {
+            updates = { isNew: false, forceActive: true, isExpiredManually: false };
+        } else if (newStatus === "expired") {
+            updates = { isNew: false, forceActive: false, isExpiredManually: true };
+        }
+        
+        saveSubscriber(id, updates).then(() => {
+          // بعد حفظ الحالة نسحب أحدث البيانات ثم ننتقل للتبويب
+          pullSubscribers().then(() => {
+            const tabBtn = document.querySelector(`.admin-tab-btn[data-tab="${newStatus}"]`);
+            if (tabBtn) tabBtn.click();
+          }).catch(() => {
+            const tabBtn = document.querySelector(`.admin-tab-btn[data-tab="${newStatus}"]`);
+            if (tabBtn) tabBtn.click();
+          });
+        });
+        return;
       }
       if (e.target.closest('.btn-remove-sub')) e.target.closest(".sub-row").remove();
       if (e.target.closest('button')?.classList.contains("save-sub")) {
@@ -843,7 +1152,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (adminDeleteCancelBtn) adminDeleteCancelBtn.onclick = () => adminDeleteModal?.setAttribute("hidden", "");
   if (cartOpenBtn) cartOpenBtn.onclick = () => cartModal?.removeAttribute("hidden");
   if (cartCloseBtn) cartCloseBtn.onclick = () => cartModal?.setAttribute("hidden", "");
-  if (cartClearBtn) cartClearBtn.onclick = () => { cartItemsCache = []; saveCart(); };
+  if (cartClearBtn) cartClearBtn.onclick = () => { cartItemsCache = []; currentDiscount = 0; appliedPromoCode = ""; saveCart(); };
   if (cartCheckoutBtn) cartCheckoutBtn.onclick = checkoutCart;
   if (cartItemsBody) {
     cartItemsBody.onclick = (e) => {
@@ -962,6 +1271,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadCart();
   bindAddToCart();
+  setupPromoEvents(); // تفعيل استماع زر الخصم
   setTimeout(initGoogleAuth, 500);
   startWelcomeFlow();
 });
